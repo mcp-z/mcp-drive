@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Field operator schema for Drive query fields that support multiple values
  * Supports OR ($any), AND ($all), and NOT ($none) operations
  */
-const FieldOperatorSchema = z
+export const FieldOperatorSchema = z
   .object({
     $any: z.array(z.string()).optional().describe('OR within field - matches if ANY value matches'),
     $all: z.array(z.string()).optional().describe('AND within field - matches if ALL values match'),
