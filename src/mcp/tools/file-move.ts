@@ -7,7 +7,7 @@ import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
-import type { Logger } from '../../types.js';
+import type { Logger } from '../../types.ts';
 
 // Type guard for Google Drive API errors
 interface DriveApiError {

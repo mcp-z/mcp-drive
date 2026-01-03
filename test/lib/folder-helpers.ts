@@ -1,5 +1,5 @@
 import type { drive_v3 } from 'googleapis';
-import type { Logger } from '../../src/types.js';
+import type { Logger } from '../../src/types.ts';
 
 /**
  * Delete a test folder created during tests.

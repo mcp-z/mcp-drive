@@ -1,4 +1,4 @@
-import type { DriveQuery, DriveQueryObject } from '../schemas/drive-query-schema.js';
+import type { DriveQuery, DriveQueryObject } from '../schemas/drive-query-schema.ts';
 
 /**
  * Field operator interface for query filters

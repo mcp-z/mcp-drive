@@ -1,9 +1,9 @@
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/files-search.js';
-import { createExtra } from '../../../lib/create-extra.js';
-import createMiddlewareContext from '../../../lib/create-middleware-context.js';
+import createTool, { type Input, type Output } from '../../../../src/mcp/tools/files-search.ts';
+import { createExtra } from '../../../lib/create-extra.ts';
+import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
 // Type guard for objects shape output
 function isObjectsShape(branch: Output | undefined): branch is Extract<Output, { shape: 'objects' }> {

@@ -2,10 +2,10 @@ import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import { google } from 'googleapis';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/folder-create.js';
-import { createExtra } from '../../../lib/create-extra.js';
-import createMiddlewareContext from '../../../lib/create-middleware-context.js';
-import { deleteTestFolder } from '../../../lib/folder-helpers.js';
+import createTool, { type Input, type Output } from '../../../../src/mcp/tools/folder-create.ts';
+import { createExtra } from '../../../lib/create-extra.ts';
+import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
+import { deleteTestFolder } from '../../../lib/folder-helpers.ts';
 
 /**
  * Tests for Drive folder create tool

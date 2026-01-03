@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { toDriveQuery } from '../../../src/lib/query-builder.js';
+import { toDriveQuery } from '../../../src/lib/query-builder.ts';
 
 describe('toDriveQuery - basic field queries', () => {
   it('handles name field (single value)', () => {

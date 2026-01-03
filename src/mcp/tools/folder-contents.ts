@@ -7,7 +7,7 @@ import { createFieldsSchema, createPaginationSchema, createShapeSchema, filterFi
 import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { google } from 'googleapis';
 import { z } from 'zod';
-import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema } from '../../schemas/index.js';
+import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema } from '../../schemas/index.ts';
 
 const inputSchema = z.object({
   folderId: z.string().min(1).describe('Folder ID to list contents (use "root" for Drive root)'),

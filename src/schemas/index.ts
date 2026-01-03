@@ -1,2 +1,2 @@
-export * from './drive-query-schema.js';
-export * from './drive-validation.js';
+export * from './drive-query-schema.ts';
+export * from './drive-validation.ts';

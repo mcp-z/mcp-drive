@@ -8,9 +8,9 @@ import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
-import { toDriveQuery } from '../../lib/query-builder.js';
-import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQuerySchema } from '../../schemas/index.js';
-import type { Logger } from '../../types.js';
+import { toDriveQuery } from '../../lib/query-builder.ts';
+import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQuerySchema } from '../../schemas/index.ts';
+import type { Logger } from '../../types.ts';
 
 const inputSchema = z.object({
   query: DriveQuerySchema.optional().describe('Drive query object with structured search fields. See DriveQuerySchema for detailed query syntax and examples.'),

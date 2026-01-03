@@ -7,8 +7,8 @@ import { createFieldsSchema, createPaginationSchema, createShapeSchema, filterFi
 import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { type drive_v3, google } from 'googleapis';
 import { z } from 'zod';
-import { toDriveQuery } from '../../lib/query-builder.js';
-import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQuerySchema } from '../../schemas/index.js';
+import { toDriveQuery } from '../../lib/query-builder.ts';
+import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQuerySchema } from '../../schemas/index.ts';
 
 const inputSchema = z.object({
   query: DriveQuerySchema.describe('Drive query object with structured search fields. See DriveQuerySchema for detailed query syntax and examples.'),

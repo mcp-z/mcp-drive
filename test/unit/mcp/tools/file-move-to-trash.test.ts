@@ -1,9 +1,9 @@
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/file-move-to-trash.js';
-import { createExtra } from '../../../lib/create-extra.js';
-import createMiddlewareContext from '../../../lib/create-middleware-context.js';
+import createTool, { type Input, type Output } from '../../../../src/mcp/tools/file-move-to-trash.ts';
+import { createExtra } from '../../../lib/create-extra.ts';
+import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
 describe('drive-file-move-to-trash', () => {
   let fileMoveToTrashHandler: ToolHandler<Input, EnrichedExtra>;

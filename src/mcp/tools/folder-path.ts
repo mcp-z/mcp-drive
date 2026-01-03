@@ -7,7 +7,7 @@ import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
-import type { Logger } from '../../types.js';
+import type { Logger } from '../../types.ts';
 
 const inputSchema = z.object({
   folderId: z.string().min(1).describe('Folder ID to get path for (or "root")'),
