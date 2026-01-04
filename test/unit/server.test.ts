@@ -46,6 +46,7 @@ describe('createServer - transport initialization', () => {
       logLevel: 'error',
       auth: 'loopback-oauth',
       repositoryUrl: 'https://github.com/mcp-z/mcp-drive',
+      resourceStoreUri: `file://${testContextPath}/files`,
     };
 
     const result = await createHTTPServer(config);
@@ -70,6 +71,7 @@ describe('createServer - transport initialization', () => {
       logLevel: 'error',
       auth: 'loopback-oauth',
       repositoryUrl: 'https://github.com/mcp-z/mcp-drive',
+      resourceStoreUri: `file://${testContextPath}/files`,
     };
 
     const result = await createHTTPServer(config);
@@ -94,6 +96,7 @@ describe('createServer - transport initialization', () => {
       logLevel: 'error',
       auth: 'loopback-oauth',
       repositoryUrl: 'https://github.com/mcp-z/mcp-drive',
+      resourceStoreUri: `file://${testContextPath}/files`,
     };
 
     const result = await createHTTPServer(config);
