@@ -1,13 +1,14 @@
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
+import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import assert from 'assert';
 import createTool, { type Input, type Output } from '../../../../src/mcp/tools/folder-search.ts';
+import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
-// Type guard for objects shape output
-function isObjectsShape(branch: Output | undefined): branch is Extract<Output, { shape: 'objects' }> {
-  return branch?.type === 'success' && branch.shape === 'objects';
+async function expectMcpError(promise: Promise<unknown>) {
+  await assert.rejects(promise, (error) => error instanceof McpError);
 }
 
 /**
@@ -42,16 +43,13 @@ describe('drive-folder-search comprehensive tests', () => {
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        if (branch.items.length > 0) {
-          const first = branch.items[0];
-          if (first) {
-            assert.ok(first.id && first.name, 'folder item missing id/name');
-            assert.equal(first.mimeType, 'application/vnd.google-apps.folder', 'should only return folders');
-          }
+      assertObjectsShape(branch, 'folder search results');
+      if (branch.items.length > 0) {
+        const first = branch.items[0];
+        if (first) {
+          assert.ok(first.id && first.name, 'folder item missing id/name');
+          assert.equal(first.mimeType, 'application/vnd.google-apps.folder', 'should only return folders');
         }
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result missing provider field');
       }
     });
 
@@ -69,16 +67,13 @@ describe('drive-folder-search comprehensive tests', () => {
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'success' && branch.shape === 'arrays') {
-        assert.ok(Array.isArray(branch.columns), 'columns should be array');
-        assert.ok(Array.isArray(branch.rows), 'rows should be array');
-        assert.ok(branch.columns.includes('id'), 'columns should include id');
-        assert.ok(branch.columns.includes('name'), 'columns should include name');
-        for (const row of branch.rows) {
-          assert.equal(row.length, branch.columns.length, 'row length should match columns length');
-        }
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result missing provider field');
+      assertArraysShape(branch, 'folder search arrays shape');
+      assert.ok(Array.isArray(branch.columns), 'columns should be array');
+      assert.ok(Array.isArray(branch.rows), 'rows should be array');
+      assert.ok(branch.columns.includes('id'), 'columns should include id');
+      assert.ok(branch.columns.includes('name'), 'columns should include name');
+      for (const row of branch.rows) {
+        assert.equal(row.length, branch.columns.length, 'row length should match columns length');
       }
     });
 
@@ -95,11 +90,46 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'folder-only mime type');
+      if (branch.items.length > 0) {
         for (const item of branch.items) {
           assert.equal(item.mimeType, 'application/vnd.google-apps.folder', 'all items should be folders');
         }
       }
+    });
+  });
+
+  describe('query input formats', () => {
+    async function assertQuery(query: Input['query']) {
+      const res = await folderSearchHandler(
+        {
+          query,
+          resolvePaths: false,
+          pageSize: 5,
+          pageToken: undefined,
+          fields: 'id,name',
+          shape: 'objects',
+        },
+        createExtra()
+      );
+      const branch = res.structuredContent?.result as Output | undefined;
+      assertSuccess(branch, 'query input formats');
+    }
+
+    it('accepts structured query objects', async () => {
+      await assertQuery({ name: 'folder' });
+    });
+
+    it('accepts structured query JSON strings', async () => {
+      await assertQuery(JSON.stringify({ name: 'folder' }));
+    });
+
+    it('accepts rawDriveQuery objects', async () => {
+      await assertQuery({ rawDriveQuery: "name contains 'folder'" });
+    });
+
+    it('accepts rawDriveQuery JSON strings', async () => {
+      await assertQuery(JSON.stringify({ rawDriveQuery: "name contains 'folder'" }));
     });
   });
 
@@ -117,7 +147,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'resolvePaths=false');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (first) assert.equal(first.path, undefined, 'should not have path when resolvePaths=false');
       }
@@ -136,7 +167,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'resolvePaths=true');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (first && first.path) {
           assert.ok(first.path.startsWith('/'), 'path should start with /');
@@ -158,7 +190,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'path format');
+      if (branch.items.length > 0) {
         for (const item of branch.items) {
           if (item.path) {
             // Path should be /Folder or /Parent/Child format
@@ -183,21 +216,20 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        assert.ok(branch.items !== undefined, 'should have items array');
-        assert.ok(Array.isArray(branch.items), 'items should be array');
-        // Items should only have id and name when fields='id,name'
-        if (branch.items.length > 0) {
-          const firstItem = branch.items[0];
-          if (!firstItem) throw new Error('Expected firstItem');
-          assert.ok(firstItem.id, 'item should have id');
-          assert.ok(firstItem.name, 'item should have name');
-          // Should not have other fields
-          const allowedKeys = ['id', 'name'];
-          const actualKeys = Object.keys(firstItem);
-          for (const key of actualKeys) {
-            assert.ok(allowedKeys.includes(key), `item should not have unexpected field: ${key}`);
-          }
+      assertObjectsShape(branch, 'minimal folder data');
+      assert.ok(branch.items !== undefined, 'should have items array');
+      assert.ok(Array.isArray(branch.items), 'items should be array');
+      // Items should only have id and name when fields='id,name'
+      if (branch.items.length > 0) {
+        const firstItem = branch.items[0];
+        if (!firstItem) throw new Error('Expected firstItem');
+        assert.ok(firstItem.id, 'item should have id');
+        assert.ok(firstItem.name, 'item should have name');
+        // Should not have other fields
+        const allowedKeys = ['id', 'name'];
+        const actualKeys = Object.keys(firstItem);
+        for (const key of actualKeys) {
+          assert.ok(allowedKeys.includes(key), `item should not have unexpected field: ${key}`);
         }
       }
     });
@@ -215,10 +247,9 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        assert.ok(branch.items !== undefined, 'should have folders array');
-        assert.ok(Array.isArray(branch.items), 'folders should be array');
-      }
+      assertObjectsShape(branch, 'full folder data');
+      assert.ok(branch.items !== undefined, 'should have folders array');
+      assert.ok(Array.isArray(branch.items), 'folders should be array');
     });
   });
 
@@ -236,9 +267,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        assert.ok(branch.items !== undefined, 'should have folders array');
-      }
+      assertObjectsShape(branch, 'first page without pageToken');
+      assert.ok(branch.items !== undefined, 'should have folders array');
     });
 
     it('handles pagination with pageToken', async () => {
@@ -254,7 +284,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const firstBranch = firstPage.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(firstBranch) && firstBranch.nextPageToken) {
+      assertObjectsShape(firstBranch, 'pagination first page');
+      if (firstBranch.nextPageToken) {
         const secondPage = await folderSearchHandler(
           {
             query: undefined,
@@ -267,7 +298,7 @@ describe('drive-folder-search comprehensive tests', () => {
           createExtra()
         );
         const secondBranch = secondPage.structuredContent?.result as Output | undefined;
-        assert.equal(secondBranch?.type, 'success', 'second page should succeed');
+        assertObjectsShape(secondBranch, 'pagination second page');
       }
     });
   });
@@ -276,7 +307,7 @@ describe('drive-folder-search comprehensive tests', () => {
     it('handles specific folder name search', async () => {
       const result = await folderSearchHandler(
         {
-          query: 'My Drive',
+          query: { rawDriveQuery: 'name = "My Drive"' },
           resolvePaths: false,
           pageSize: 5,
           pageToken: undefined,
@@ -286,13 +317,13 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle folder name search');
+      assertSuccess(branch, 'folder name search');
     });
 
     it('handles parent folder queries', async () => {
       const result = await folderSearchHandler(
         {
-          query: 'root in parents',
+          query: { rawDriveQuery: "'root' in parents" },
           resolvePaths: false,
           pageSize: 5,
           pageToken: undefined,
@@ -302,7 +333,7 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle parent folder queries');
+      assertSuccess(branch, 'parent folder queries');
     });
 
     it('filters out trashed folders', async () => {
@@ -318,7 +349,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'trashed folder filter');
+      if (branch.items.length > 0) {
         // All items should be non-trashed folders (implicit in query)
         assert.ok(
           branch.items.every((item) => item.mimeType === 'application/vnd.google-apps.folder'),
@@ -342,7 +374,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'required fields');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (!first) throw new Error('Expected first');
         assert.ok(first.id, 'folder should have id');
@@ -364,7 +397,8 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'optional fields');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (!first) throw new Error('Expected first');
         if (first.parents) {
@@ -382,35 +416,35 @@ describe('drive-folder-search comprehensive tests', () => {
 
   describe('error handling', () => {
     it('handles invalid queries gracefully', async () => {
-      const result = await folderSearchHandler(
-        {
-          query: 'invalid_field = "value"',
-          resolvePaths: false,
-          pageSize: 5,
-          pageToken: undefined,
-          fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
-          shape: 'objects',
-        },
-        createExtra()
+      await expectMcpError(
+        folderSearchHandler(
+          {
+            query: { rawDriveQuery: 'invalid_field = "value"' },
+            resolvePaths: false,
+            pageSize: 5,
+            pageToken: undefined,
+            fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
+            shape: 'objects',
+          },
+          createExtra()
+        )
       );
-      const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle invalid queries');
     });
 
     it('handles invalid pageToken gracefully', async () => {
-      const result = await folderSearchHandler(
-        {
-          query: undefined,
-          resolvePaths: false,
-          pageSize: 5,
-          pageToken: 'invalid-token-123',
-          fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
-          shape: 'objects',
-        },
-        createExtra()
+      await expectMcpError(
+        folderSearchHandler(
+          {
+            query: undefined,
+            resolvePaths: false,
+            pageSize: 5,
+            pageToken: 'invalid-token-123',
+            fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
+            shape: 'objects',
+          },
+          createExtra()
+        )
       );
-      const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle invalid pageToken');
     });
   });
 

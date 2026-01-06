@@ -31,7 +31,7 @@ export default function createPrompt() {
 ## Boolean Flags
 - \`starred\`: true/false
 - \`sharedWithMe\`: true/false
-- \`trashed\`: true/false (tools auto-filter trashed by default)
+- \`trashed\`: true/false
 
 ## Date Range
 \`\`\`json

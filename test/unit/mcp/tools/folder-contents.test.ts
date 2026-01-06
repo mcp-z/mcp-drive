@@ -2,13 +2,9 @@ import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import createTool, { type Input, type Output } from '../../../../src/mcp/tools/folder-contents.ts';
+import { assertArraysShape, assertObjectsShape } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
-
-// Type guard for objects shape output
-function isObjectsShape(branch: Output | undefined): branch is Extract<Output, { shape: 'objects' }> {
-  return branch?.type === 'success' && branch.shape === 'objects';
-}
 
 /**
  * Tests for Drive folder-contents tool
@@ -41,13 +37,10 @@ describe('folder-contents tool', () => {
       assert.ok(res?.structuredContent, 'should have structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch)) {
-        assert.ok(Array.isArray(branch.items), 'items should be an array');
-        assert.equal(branch.folderId, 'root', 'should return queried folderId');
-        assert.equal(typeof branch.count, 'number', 'should have count');
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result should have provider');
-      }
+      assertObjectsShape(branch, 'root folder contents');
+      assert.ok(Array.isArray(branch.items), 'items should be an array');
+      assert.equal(branch.folderId, 'root', 'should return queried folderId');
+      assert.equal(typeof branch.count, 'number', 'should have count');
     });
 
     it('lists folder contents with shape arrays returns columnar format', async () => {
@@ -64,16 +57,13 @@ describe('folder-contents tool', () => {
       assert.ok(res?.structuredContent, 'should have structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.shape === 'arrays') {
-        assert.ok(Array.isArray(branch.columns), 'columns should be array');
-        assert.ok(Array.isArray(branch.rows), 'rows should be array');
-        assert.ok(branch.columns.includes('id'), 'columns should include id');
-        assert.ok(branch.columns.includes('name'), 'columns should include name');
-        for (const row of branch.rows) {
-          assert.equal(row.length, branch.columns.length, 'row length should match columns length');
-        }
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result should have provider');
+      assertArraysShape(branch, 'arrays shape');
+      assert.ok(Array.isArray(branch.columns), 'columns should be array');
+      assert.ok(Array.isArray(branch.rows), 'rows should be array');
+      assert.ok(branch.columns.includes('id'), 'columns should include id');
+      assert.ok(branch.columns.includes('name'), 'columns should include name');
+      for (const row of branch.rows) {
+        assert.equal(row.length, branch.columns.length, 'row length should match columns length');
       }
     });
 
@@ -90,7 +80,8 @@ describe('folder-contents tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'requested fields only');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (first) {
           assert.ok(first.id, 'item should have id');
@@ -119,7 +110,8 @@ describe('folder-contents tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'mimeType field');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (first) {
           assert.ok(first.mimeType, 'item should have mimeType');
@@ -140,7 +132,8 @@ describe('folder-contents tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch) && branch.items.length > 0) {
+      assertObjectsShape(branch, 'parents field');
+      if (branch.items.length > 0) {
         const first = branch.items[0];
         if (first?.parents) {
           assert.ok(Array.isArray(first.parents), 'parents should be an array');
@@ -168,9 +161,8 @@ describe('folder-contents tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch)) {
-        assert.ok(branch.items.length <= 3, 'should return at most pageSize items');
-      }
+      assertObjectsShape(branch, 'pageSize limit');
+      assert.ok(branch.items.length <= 3, 'should return at most pageSize items');
     });
 
     it('returns nextPageToken for pagination', async () => {
@@ -186,7 +178,8 @@ describe('folder-contents tool', () => {
 
       const firstBranch = firstPage.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(firstBranch) && firstBranch.nextPageToken) {
+      assertObjectsShape(firstBranch, 'first page for pagination');
+      if (firstBranch.nextPageToken) {
         const secondPage = await folderContentsHandler(
           {
             folderId: 'root',
@@ -199,7 +192,7 @@ describe('folder-contents tool', () => {
         );
 
         const secondBranch = secondPage.structuredContent?.result as Output | undefined;
-        assert.equal(secondBranch?.type, 'success', 'second page should succeed');
+        assertObjectsShape(secondBranch, 'second page for pagination');
       }
     });
   });
@@ -218,7 +211,8 @@ describe('folder-contents tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch) && branch.items.length > 1) {
+      assertObjectsShape(branch, 'folder ordering');
+      if (branch.items.length > 1) {
         const folderMime = 'application/vnd.google-apps.folder';
         let seenNonFolder = false;
 

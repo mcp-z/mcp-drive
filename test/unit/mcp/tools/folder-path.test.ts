@@ -33,15 +33,14 @@ describe('folder-path tool', () => {
       assert.ok(res?.structuredContent, 'should have structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.equal(branch.path, '/', 'root path should be /');
-        assert.ok(Array.isArray(branch.items), 'should have items array');
-        assert.equal(branch.items.length, 1, 'root should have 1 segment');
-        assert.equal(branch.items[0]?.id, 'root', 'root segment should have id=root');
-        assert.equal(branch.items[0]?.name, 'My Drive', 'root segment should be named My Drive');
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result should have provider');
+      if (branch?.type !== 'success') {
+        assert.fail(`expected success branch, got ${branch?.type}`);
       }
+      assert.equal(branch.path, '/', 'root path should be /');
+      assert.ok(Array.isArray(branch.items), 'should have items array');
+      assert.equal(branch.items.length, 1, 'root should have 1 segment');
+      assert.equal(branch.items[0]?.id, 'root', 'root segment should have id=root');
+      assert.equal(branch.items[0]?.name, 'My Drive', 'root segment should be named My Drive');
     });
   });
 
@@ -56,9 +55,10 @@ describe('folder-path tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.ok(branch.path.startsWith('/'), 'path should start with /');
+      if (branch?.type !== 'success') {
+        assert.fail(`expected success branch, got ${branch?.type}`);
       }
+      assert.ok(branch.path.startsWith('/'), 'path should start with /');
     });
 
     it('returns items with id and name', async () => {
@@ -71,13 +71,14 @@ describe('folder-path tool', () => {
 
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        for (const item of branch.items) {
-          assert.ok(item.id, 'item should have id');
-          assert.ok(item.name, 'item should have name');
-          assert.equal(typeof item.id, 'string', 'id should be string');
-          assert.equal(typeof item.name, 'string', 'name should be string');
-        }
+      if (branch?.type !== 'success') {
+        assert.fail(`expected success branch, got ${branch?.type}`);
+      }
+      for (const item of branch.items) {
+        assert.ok(item.id, 'item should have id');
+        assert.ok(item.name, 'item should have name');
+        assert.equal(typeof item.id, 'string', 'id should be string');
+        assert.equal(typeof item.name, 'string', 'name should be string');
       }
     });
   });
@@ -85,13 +86,15 @@ describe('folder-path tool', () => {
   describe('error handling', () => {
     it('handles non-existent folder gracefully', async () => {
       try {
-        await folderPathHandler(
+        const res = await folderPathHandler(
           {
             folderId: 'non-existent-folder-id-12345',
           },
           createExtra()
         );
-        // If it succeeds without error, that's acceptable (auth_required or empty result)
+        const branch = res.structuredContent?.result as Output | undefined;
+        assert.ok(branch, 'expected structured result');
+        assert.equal(branch.type, 'success', `expected success branch, got ${branch?.type}`);
       } catch (error) {
         // McpError is expected for non-existent folders
         assert.ok(error, 'should throw an error for non-existent folder');

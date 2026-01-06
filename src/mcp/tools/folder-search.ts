@@ -9,11 +9,11 @@ import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
 import { toDriveQuery } from '../../lib/query-builder.ts';
-import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQuerySchema } from '../../schemas/index.ts';
+import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQueryParameterSchema, parseDriveQueryParameter } from '../../schemas/index.ts';
 import type { Logger } from '../../types.ts';
 
 const inputSchema = z.object({
-  query: DriveQuerySchema.optional().describe('Drive query object with structured search fields. See DriveQuerySchema for detailed query syntax and examples.'),
+  query: DriveQueryParameterSchema.optional().describe('Structured Drive query object or JSON string. Use rawDriveQuery for raw Drive syntax.'),
   fields: createFieldsSchema({
     availableFields: [...DRIVE_FILE_FIELDS, 'path'] as const,
     fieldDescriptions: {
@@ -165,39 +165,38 @@ async function resolveFolderPath(drive: drive_v3.Drive, folderId: string, folder
 async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, fields, shape = 'arrays' }: Input, extra: EnrichedExtra): Promise<CallToolResult> {
   const logger = extra.logger;
 
-  const requestedFields = parseFields(fields, [...DRIVE_FILE_FIELDS, 'path'] as const);
-
-  // Validate and clamp pageSize to Google Drive API limits (1-1000)
-  const validPageSize = Math.max(1, Math.min(1000, Math.floor(pageSize || 50)));
-
-  logger.info('drive.folder.search called', {
-    query,
-    resolvePaths,
-    pageSize: validPageSize,
-    pageToken: pageToken ? '[provided]' : undefined,
-    fields: fields || 'all',
-  });
-
   try {
+    const parsedQuery = parseDriveQueryParameter(query);
+    const requestedFields = parseFields(fields, [...DRIVE_FILE_FIELDS, 'path'] as const);
+
+    // Validate and clamp pageSize to Google Drive API limits (1-1000)
+    const validPageSize = Math.max(1, Math.min(1000, Math.floor(pageSize || 50)));
+
+    logger.info('drive.folder.search called', {
+      query: parsedQuery,
+      resolvePaths,
+      pageSize: validPageSize,
+      pageToken: pageToken ? '[provided]' : undefined,
+      fields: fields || 'all',
+    });
+
     const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
 
     const folderMimeType = 'application/vnd.google-apps.folder';
     let qStr: string;
 
-    if (typeof query === 'string') {
-      // String query - treat as raw Drive query
-      qStr = `(${query}) and mimeType='${folderMimeType}' and trashed = false`;
-    } else if (query && typeof query === 'object' && 'rawDriveQuery' in query && query.rawDriveQuery) {
+    if (parsedQuery && 'rawDriveQuery' in parsedQuery && parsedQuery.rawDriveQuery) {
       // Object with rawDriveQuery field - use it directly
-      qStr = `(${query.rawDriveQuery}) and mimeType='${folderMimeType}' and trashed = false`;
-    } else if (query) {
+      qStr = parsedQuery.rawDriveQuery;
+    } else if (parsedQuery) {
       // Structured query object - convert to Drive query string
-      const { q } = toDriveQuery(query);
-      qStr = q ? `(${q}) and mimeType='${folderMimeType}' and trashed = false` : `mimeType='${folderMimeType}' and trashed = false`;
+      const { q } = toDriveQuery(parsedQuery);
+      qStr = q || '';
     } else {
-      // No query - return all folders
-      qStr = `mimeType='${folderMimeType}' and trashed = false`;
+      qStr = '';
     }
+
+    qStr = qStr ? `(${qStr}) and mimeType='${folderMimeType}'` : `mimeType='${folderMimeType}'`;
 
     const listOptions: {
       q: string;
@@ -303,7 +302,7 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
     const filteredItems = items.map((item) => filterFields(item, requestedFields));
 
     logger.info('drive.folder.search returning', {
-      query,
+      query: parsedQuery,
       pageSize,
       resultCount: filteredItems.length,
       resolvePaths,
@@ -343,40 +342,7 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.folder.search error', { error: message });
 
-    // Check if this is a Drive API validation error (invalid query, invalid pageToken, etc.)
-    // These should return empty results rather than throw
-    const isDriveValidationError = message.includes('Invalid Value') || message.includes('Invalid value') || message.includes('File not found') || message.includes('Bad Request');
-
-    if (isDriveValidationError) {
-      // Return empty result set for validation errors
-      const result: Output =
-        shape === 'arrays'
-          ? {
-              type: 'success' as const,
-              shape: 'arrays' as const,
-              columns: [],
-              rows: [],
-              count: 0,
-            }
-          : {
-              type: 'success' as const,
-              shape: 'objects' as const,
-              items: [],
-              count: 0,
-            };
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(result),
-          },
-        ],
-        structuredContent: { result },
-      };
-    }
-
-    // Throw McpError for other errors
+    // Throw McpError for all errors so callers can see Drive validation details
     throw new McpError(ErrorCode.InternalError, `Error searching folders: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });

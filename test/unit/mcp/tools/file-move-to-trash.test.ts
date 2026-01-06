@@ -2,6 +2,7 @@ import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import createTool, { type Input, type Output } from '../../../../src/mcp/tools/file-move-to-trash.ts';
+import { assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
@@ -25,26 +26,22 @@ describe('drive-file-move-to-trash', () => {
       const branch = res.structuredContent.result as Output | undefined;
 
       // Should have success type with failure details or error type
-      assert.ok(branch, 'branch should exist');
-      assert.ok(branch.type === 'success' || branch.type === 'auth_required', 'unexpected branch type');
+      assertSuccess(branch, 'move-to-trash structured response');
+      assert.ok(typeof branch.operationSummary === 'string', 'should have operationSummary');
+      assert.ok(typeof branch.totalCount === 'number', 'should have totalCount');
+      assert.ok(typeof branch.successCount === 'number', 'should have successCount');
+      assert.ok(typeof branch.failureCount === 'number', 'should have failureCount');
+      assert.equal(branch.recoverable, true, 'trash operation should be recoverable');
+      assert.equal(branch.recoverableDays, 30, 'should have 30 days recovery window');
 
-      if (branch.type === 'success') {
-        assert.ok(typeof branch.operationSummary === 'string', 'should have operationSummary');
-        assert.ok(typeof branch.totalCount === 'number', 'should have totalCount');
-        assert.ok(typeof branch.successCount === 'number', 'should have successCount');
-        assert.ok(typeof branch.failureCount === 'number', 'should have failureCount');
-        assert.equal(branch.recoverable, true, 'trash operation should be recoverable');
-        assert.equal(branch.recoverableDays, 30, 'should have 30 days recovery window');
-
-        // If there were failures, check structure
-        if (branch.failures) {
-          assert.ok(Array.isArray(branch.failures), 'failures should be array');
-          if (branch.failures.length > 0) {
-            const failure = branch.failures[0];
-            assert.ok(failure, 'failure should exist');
-            assert.ok(typeof failure.id === 'string', 'failure should have id');
-            assert.ok(typeof failure.error === 'string', 'failure should have error message');
-          }
+      // If there were failures, check structure
+      if (branch.failures) {
+        assert.ok(Array.isArray(branch.failures), 'failures should be array');
+        if (branch.failures.length > 0) {
+          const failure = branch.failures[0];
+          assert.ok(failure, 'failure should exist');
+          assert.ok(typeof failure.id === 'string', 'failure should have id');
+          assert.ok(typeof failure.error === 'string', 'failure should have error message');
         }
       }
     });
@@ -53,18 +50,16 @@ describe('drive-file-move-to-trash', () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-file-id'] }, createExtra());
 
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'success') {
-        assert.equal(branch.totalCount, 1, 'should process 1 item');
-      }
+      assertSuccess(branch, 'single file ID');
+      assert.equal(branch.totalCount, 1, 'should process 1 item');
     });
 
     it('handles multiple file IDs', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-file-1', 'test-file-2', 'test-file-3'] }, createExtra());
 
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'success') {
-        assert.equal(branch.totalCount, 3, 'should process 3 items');
-      }
+      assertSuccess(branch, 'multiple file IDs');
+      assert.equal(branch.totalCount, 3, 'should process 3 items');
     });
   });
 
@@ -75,11 +70,10 @@ describe('drive-file-move-to-trash', () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-id'] }, createExtra());
 
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'success') {
-        // If all items succeeded, failures should be undefined
-        if (branch.successCount === branch.totalCount) {
-          assert.equal(branch.failures, undefined, 'should omit failures array when all succeed');
-        }
+      assertSuccess(branch, 'omits failures array');
+      // If all items succeeded, failures should be undefined
+      if (branch.successCount === branch.totalCount) {
+        assert.equal(branch.failures, undefined, 'should omit failures array when all succeed');
       }
     });
 
@@ -87,12 +81,11 @@ describe('drive-file-move-to-trash', () => {
       const res = await fileMoveToTrashHandler({ ids: ['invalid-id-1', 'invalid-id-2'] }, createExtra());
 
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'success') {
-        // With invalid IDs, we expect failures
-        if (branch.failureCount > 0) {
-          assert.ok(Array.isArray(branch.failures), 'should include failures array when items fail');
-          assert.ok(branch.failures.length > 0, 'failures array should not be empty');
-        }
+      assertSuccess(branch, 'includes failures array');
+      // With invalid IDs, we expect failures
+      if (branch.failureCount > 0) {
+        assert.ok(Array.isArray(branch.failures), 'should include failures array when items fail');
+        assert.ok(branch.failures.length > 0, 'failures array should not be empty');
       }
     });
   });
@@ -104,9 +97,8 @@ describe('drive-file-move-to-trash', () => {
       const res = await fileMoveToTrashHandler({ ids: maxBatch }, createExtra());
       const branch = res.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.equal(branch.totalCount, 1000, 'should process all 1000 items');
-      }
+      assertSuccess(branch, 'max batch size');
+      assert.equal(branch.totalCount, 1000, 'should process all 1000 items');
     });
   });
 
@@ -115,19 +107,14 @@ describe('drive-file-move-to-trash', () => {
       const res = await fileMoveToTrashHandler({ ids: ['malformed|||id'] }, createExtra());
 
       const branch = res.structuredContent?.result as Output | undefined;
-      assert.ok(branch, 'branch should exist');
-      assert.ok(branch.type === 'success' || branch.type === 'auth_required', 'should handle malformed IDs gracefully');
+      assertSuccess(branch, 'malformed IDs');
     });
 
-    it('handles auth failures', async () => {
+    it('requires auth to succeed', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-id'] }, createExtra());
 
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required should have provider');
-        assert.ok(branch.message, 'auth_required should have message');
-        assert.ok(branch.url, 'auth_required should have url');
-      }
+      assertSuccess(branch, 'auth requirement');
     });
   });
 });

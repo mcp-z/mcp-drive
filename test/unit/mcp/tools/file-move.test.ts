@@ -2,6 +2,7 @@ import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import createTool, { type Input, type Output } from '../../../../src/mcp/tools/file-move.ts';
+import { assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
@@ -39,7 +40,7 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
       // Should handle gracefully - either error or success with 0 moved
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle single file ID');
+      assertSuccess(branch, 'single file ID');
     });
 
     it('accepts array of file IDs', async () => {
@@ -53,7 +54,7 @@ describe('drive-file-move comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle array of file IDs');
+      assertSuccess(branch, 'array of file IDs');
     });
 
     it('validates destination folder ID', async () => {
@@ -66,7 +67,7 @@ describe('drive-file-move comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type, 'should return structured response');
+      assertSuccess(branch, 'destination folder validation');
     });
 
     it('respects returnOldParents parameter', async () => {
@@ -90,8 +91,8 @@ describe('drive-file-move comprehensive tests', () => {
       const branch1 = resultWithOldParents.structuredContent?.result as Output | undefined;
       const branch2 = resultWithoutOldParents.structuredContent?.result as Output | undefined;
 
-      assert.ok(branch1?.type, 'should handle returnOldParents=true');
-      assert.ok(branch2?.type, 'should handle returnOldParents=false');
+      assertSuccess(branch1, 'returnOldParents=true');
+      assertSuccess(branch2, 'returnOldParents=false');
     });
   });
 
@@ -107,13 +108,12 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.ok('moved' in branch, 'should have moved array');
-        assert.ok('totalRequested' in branch, 'should have totalRequested count');
-        assert.ok('totalMoved' in branch, 'should have totalMoved count');
-        assert.ok('totalFailed' in branch, 'should have totalFailed count');
-        assert.ok(Array.isArray(branch.moved), 'moved should be array');
-      }
+      assertSuccess(branch, 'success response structure');
+      assert.ok('moved' in branch, 'should have moved array');
+      assert.ok('totalRequested' in branch, 'should have totalRequested count');
+      assert.ok('totalMoved' in branch, 'should have totalMoved count');
+      assert.ok('totalFailed' in branch, 'should have totalFailed count');
+      assert.ok(Array.isArray(branch.moved), 'moved should be array');
     });
 
     it('includes failed array when there are failures', async () => {
@@ -128,7 +128,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.totalFailed > 0) {
+      assertSuccess(branch, 'failed array inclusion');
+      if (branch.totalFailed > 0) {
         assert.ok('failed' in branch, 'should have failed array when there are failures');
         assert.ok(Array.isArray(branch.failed), 'failed should be array');
         assert.equal(branch.failed.length, branch.totalFailed, 'failed array length should match totalFailed');
@@ -146,7 +147,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.moved.length > 0) {
+      assertSuccess(branch, 'moved item fields');
+      if (branch.moved.length > 0) {
         const movedItem = branch.moved[0];
         if (!movedItem) throw new Error('Expected movedItem');
         assert.ok('fileId' in movedItem, 'moved item should have fileId');
@@ -168,7 +170,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.failed && branch.failed.length > 0) {
+      assertSuccess(branch, 'failed item fields');
+      if (branch.failed && branch.failed.length > 0) {
         const failedItem = branch.failed[0];
         if (!failedItem) throw new Error('Expected failedItem');
         assert.ok('fileId' in failedItem, 'failed item should have fileId');
@@ -184,7 +187,7 @@ describe('drive-file-move comprehensive tests', () => {
       const fileIds = Array.from({ length: 100 }, (_, i) => `file-${i}`);
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type, 'should handle batch of 100 files');
+      assertSuccess(branch, 'batch of 100 files');
     });
 
     it('totalRequested matches input count', async () => {
@@ -192,9 +195,8 @@ describe('drive-file-move comprehensive tests', () => {
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.equal(branch.totalRequested, fileIds.length, 'totalRequested should match input file count');
-      }
+      assertSuccess(branch, 'totalRequested matches input count');
+      assert.equal(branch.totalRequested, fileIds.length, 'totalRequested should match input file count');
     });
 
     it('totalMoved + totalFailed equals totalRequested', async () => {
@@ -202,10 +204,9 @@ describe('drive-file-move comprehensive tests', () => {
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        const sum = branch.totalMoved + branch.totalFailed;
-        assert.equal(sum, branch.totalRequested, 'totalMoved + totalFailed should equal totalRequested');
-      }
+      assertSuccess(branch, 'totalMoved + totalFailed');
+      const sum = branch.totalMoved + branch.totalFailed;
+      assert.equal(sum, branch.totalRequested, 'totalMoved + totalFailed should equal totalRequested');
     });
   });
 
@@ -221,7 +222,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.moved.length > 0) {
+      assertSuccess(branch, 'oldParents populated');
+      if (branch.moved.length > 0) {
         const movedItem = branch.moved[0];
         if (!movedItem) throw new Error('Expected movedItem');
         assert.ok(Array.isArray(movedItem.oldParents), 'oldParents should be array');
@@ -240,7 +242,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.moved.length > 0) {
+      assertSuccess(branch, 'oldParents empty when returnOldParents=false');
+      if (branch.moved.length > 0) {
         const movedItem = branch.moved[0];
         if (!movedItem) throw new Error('Expected movedItem');
         assert.ok(Array.isArray(movedItem.oldParents), 'oldParents should be array');
@@ -260,7 +263,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.moved.length > 0) {
+      assertSuccess(branch, 'newParent matches destination');
+      if (branch.moved.length > 0) {
         const movedItem = branch.moved[0];
         if (!movedItem) throw new Error('Expected movedItem');
         assert.equal(movedItem.newParent, destinationFolderId, 'newParent should match destinationFolderId');
@@ -279,7 +283,7 @@ describe('drive-file-move comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle non-existent file gracefully');
+      assertSuccess(branch, 'non-existent file handling');
     });
 
     it('handles non-existent destination folder gracefully', async () => {
@@ -292,7 +296,7 @@ describe('drive-file-move comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle non-existent destination gracefully');
+      assertSuccess(branch, 'non-existent destination handling');
     });
 
     it('handles partial failures in batch operations', async () => {
@@ -301,11 +305,10 @@ describe('drive-file-move comprehensive tests', () => {
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        // Should track both successes and failures
-        assert.ok(branch.totalMoved >= 0, 'totalMoved should be non-negative');
-        assert.ok(branch.totalFailed >= 0, 'totalFailed should be non-negative');
-      }
+      assertSuccess(branch, 'partial failures in batch');
+      // Should track both successes and failures
+      assert.ok(branch.totalMoved >= 0, 'totalMoved should be non-negative');
+      assert.ok(branch.totalFailed >= 0, 'totalFailed should be non-negative');
     });
 
     it('provides error details for failures', async () => {
@@ -319,7 +322,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.failed && branch.failed.length > 0) {
+      assertSuccess(branch, 'error details for failures');
+      if (branch.failed && branch.failed.length > 0) {
         const failedItem = branch.failed[0];
         if (!failedItem) throw new Error('Expected failedItem');
         assert.ok(failedItem.error, 'failed item should have error message');
@@ -340,9 +344,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.equal(branch.totalRequested, 1, 'single file should have totalRequested=1');
-      }
+      assertSuccess(branch, 'single file mode detection');
+      assert.equal(branch.totalRequested, 1, 'single file should have totalRequested=1');
     });
 
     it('detects batch mode correctly', async () => {
@@ -350,9 +353,8 @@ describe('drive-file-move comprehensive tests', () => {
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success') {
-        assert.equal(branch.totalRequested, fileIds.length, 'batch should have totalRequested matching array length');
-      }
+      assertSuccess(branch, 'batch mode detection');
+      assert.equal(branch.totalRequested, fileIds.length, 'batch should have totalRequested matching array length');
     });
   });
 
@@ -367,7 +369,7 @@ describe('drive-file-move comprehensive tests', () => {
         createExtra()
       );
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type, 'should handle move to root');
+      assertSuccess(branch, 'move to root');
     });
 
     it('handles webViewLink when present', async () => {
@@ -381,7 +383,8 @@ describe('drive-file-move comprehensive tests', () => {
       );
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (branch?.type === 'success' && branch.moved.length > 0) {
+      assertSuccess(branch, 'webViewLink presence');
+      if (branch.moved.length > 0) {
         const movedItem = branch.moved[0];
         if (!movedItem) throw new Error('Expected movedItem');
         if (movedItem.webViewLink) {

@@ -37,13 +37,13 @@ export type FieldOperator = z.infer<typeof FieldOperatorSchema>;
  * with exactOptionalPropertyTypes. The runtime schema is correct; this cast ensures
  * TypeScript sees the strict DriveQueryObject type everywhere the schema is used.
  */
-const DriveQueryObjectSchema = z.lazy(() =>
+export const DriveQuerySchema = z.lazy(() =>
   z
     .object({
       // Logical operators for combining conditions (recursive)
-      $and: z.array(DriveQueryObjectSchema).optional().describe('Array of conditions that must ALL match'),
-      $or: z.array(DriveQueryObjectSchema).optional().describe('Array of conditions where ANY must match'),
-      $not: DriveQueryObjectSchema.optional().describe('Nested condition that must NOT match'),
+      $and: z.array(DriveQuerySchema).optional().describe('Array of conditions that must ALL match'),
+      $or: z.array(DriveQuerySchema).optional().describe('Array of conditions where ANY must match'),
+      $not: DriveQuerySchema.optional().describe('Nested condition that must NOT match'),
 
       // File/folder name search
       name: z
@@ -72,7 +72,7 @@ const DriveQueryObjectSchema = z.lazy(() =>
       // Boolean flags
       starred: z.boolean().optional().describe('Filter by starred status (true = starred, false = not starred)'),
       sharedWithMe: z.boolean().optional().describe('Filter by "shared with me" collection (true = in shared collection, false = not shared)'),
-      trashed: z.boolean().optional().describe('Filter by trash status (true = in trash, false = not in trash). Note: Drive tools automatically filter out trashed files unless explicitly requested.'),
+      trashed: z.boolean().optional().describe('Filter by trash status (true = in trash, false = not in trash).'),
 
       // Date range filtering
       modifiedTime: z
@@ -122,14 +122,34 @@ export type DriveQueryObject = {
   rawDriveQuery?: string;
 };
 
+export type DriveQuery = DriveQueryObject;
+
 /**
- * Drive query schema that accepts either:
- * - A structured DriveQueryObject with typed fields
- * - A raw Drive query string for advanced use cases
+ * Drive query parameter schema that accepts either:
+ * - A structured DriveQuery object with typed fields
+ * - A JSON string representing that object
  *
  * This provides type safety for common queries while allowing
- * direct Google Drive query syntax when needed.
+ * JSON string input from MCP clients when needed.
  */
-export const DriveQuerySchema = z.union([z.string().min(1), DriveQueryObjectSchema]);
+export const DriveQueryParameterSchema = z.union([DriveQuerySchema, z.string().min(1)]) as z.ZodType<DriveQuery | string>;
+export type DriveQueryParameter = z.infer<typeof DriveQueryParameterSchema>;
 
-export type DriveQuery = string | DriveQueryObject;
+export function parseDriveQueryParameter(input: DriveQuery | string | undefined): DriveQuery | undefined {
+  if (input === undefined) return undefined;
+  const raw = typeof input === 'string' ? safeJsonParse(input, 'rawDriveQuery') : input;
+  const validated = DriveQuerySchema.safeParse(raw);
+  if (!validated.success) {
+    throw new Error(`Invalid query JSON: ${validated.error.message}. Use {"rawDriveQuery":"<query>"} for Drive syntax.`);
+  }
+  return validated.data;
+}
+
+function safeJsonParse(value: string, rawField: 'rawDriveQuery'): unknown {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid JSON';
+    throw new Error(`Query must be valid JSON. ${message}. Wrap Drive syntax in {"${rawField}":"<query>"} if needed.`);
+  }
+}

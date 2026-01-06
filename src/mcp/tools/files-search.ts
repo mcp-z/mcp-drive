@@ -8,10 +8,10 @@ import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/
 import { type drive_v3, google } from 'googleapis';
 import { z } from 'zod';
 import { toDriveQuery } from '../../lib/query-builder.ts';
-import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQuerySchema } from '../../schemas/index.ts';
+import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQueryParameterSchema, parseDriveQueryParameter } from '../../schemas/index.ts';
 
 const inputSchema = z.object({
-  query: DriveQuerySchema.describe('Drive query object with structured search fields. See DriveQuerySchema for detailed query syntax and examples.'),
+  query: DriveQueryParameterSchema.describe('Structured Drive query object or JSON string. Use rawDriveQuery for raw Drive syntax.'),
   fields: createFieldsSchema({
     availableFields: DRIVE_FILE_FIELDS,
     fieldDescriptions: DRIVE_FILE_FIELD_DESCRIPTIONS,
@@ -68,47 +68,49 @@ type driveResponse = drive_v3.Schema$FileList;
 async function handler({ query, pageSize = 50, pageToken, fields, shape = 'arrays' }: Input, extra: EnrichedExtra): Promise<CallToolResult> {
   const logger = extra.logger;
 
-  const requestedFields = parseFields(fields, DRIVE_FILE_FIELDS);
-
-  // Validate and clamp pageSize to Google Drive API limits (1-1000)
-  const validPageSize = Math.max(1, Math.min(1000, Math.floor(pageSize || 50)));
-
-  logger.info('drive.files-search called', {
-    query,
-    pageSize: validPageSize,
-    pageToken: pageToken ? '[provided]' : undefined,
-    fields: fields || 'all',
-  });
-
   try {
+    const parsedQuery = parseDriveQueryParameter(query);
+    const requestedFields = parseFields(fields, DRIVE_FILE_FIELDS);
+
+    // Validate and clamp pageSize to Google Drive API limits (1-1000)
+    const validPageSize = Math.max(1, Math.min(1000, Math.floor(pageSize || 50)));
+
+    logger.info('drive.files-search called', {
+      query: parsedQuery,
+      pageSize: validPageSize,
+      pageToken: pageToken ? '[provided]' : undefined,
+      fields: fields || 'all',
+    });
+
     const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
 
     // Handle query parameter
     let qStr: string;
-    if (typeof query === 'string') {
-      // String query - treat as raw Drive query
-      qStr = `(${query}) and trashed = false`;
-    } else if (query && typeof query === 'object' && 'rawDriveQuery' in query && query.rawDriveQuery) {
+    if (parsedQuery && 'rawDriveQuery' in parsedQuery && parsedQuery.rawDriveQuery) {
       // Object with rawDriveQuery field - use it directly
-      qStr = `(${query.rawDriveQuery}) and trashed = false`;
-    } else {
+      qStr = parsedQuery.rawDriveQuery;
+    } else if (parsedQuery) {
       // Structured query object - convert to Drive query string
-      const { q } = toDriveQuery(query);
-      qStr = q ? `(${q}) and trashed = false` : 'trashed = false';
+      const { q } = toDriveQuery(parsedQuery);
+      qStr = q || '';
+    } else {
+      qStr = '';
     }
 
     const listOptions: {
-      q: string;
+      q?: string;
       pageSize: number;
       fields: string;
       orderBy: string;
       pageToken?: string;
     } = {
-      q: qStr,
       pageSize: validPageSize,
       fields: 'files(id,name,mimeType,webViewLink,modifiedTime,parents,shared,starred,owners),nextPageToken',
       orderBy: 'modifiedTime desc',
     };
+    if (qStr.trim().length > 0) {
+      listOptions.q = qStr;
+    }
     if (pageToken && pageToken.trim().length > 0) {
       listOptions.pageToken = pageToken;
     }
@@ -189,7 +191,7 @@ async function handler({ query, pageSize = 50, pageToken, fields, shape = 'array
     const filteredItems = items.map((item) => filterFields(item, requestedFields));
 
     logger.info('drive.files-search returning', {
-      query,
+      query: parsedQuery,
       pageSize,
       resultCount: filteredItems.length,
       fields: fields || 'all',
@@ -228,40 +230,7 @@ async function handler({ query, pageSize = 50, pageToken, fields, shape = 'array
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.files-search error', { error: message });
 
-    // Check if this is a Drive API validation error (invalid query, invalid pageToken, etc.)
-    // These should return empty results rather than throw
-    const isDriveValidationError = message.includes('Invalid Value') || message.includes('Invalid value') || message.includes('File not found') || message.includes('Bad Request');
-
-    if (isDriveValidationError) {
-      // Return empty result set for validation errors
-      const result: Output =
-        shape === 'arrays'
-          ? {
-              type: 'success' as const,
-              shape: 'arrays' as const,
-              columns: [],
-              rows: [],
-              count: 0,
-            }
-          : {
-              type: 'success' as const,
-              shape: 'objects' as const,
-              items: [],
-              count: 0,
-            };
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(result),
-          },
-        ],
-        structuredContent: { result },
-      };
-    }
-
-    // Throw McpError for other errors
+    // Throw McpError for all errors so callers can see Drive validation details
     throw new McpError(ErrorCode.InternalError, `Error searching files: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });

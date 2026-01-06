@@ -39,9 +39,9 @@ interface FiltersObject {
  * - sharedWithMe = true - Filter by shared status
  * - modifiedTime >= 'date' - Date filtering
  * - 'email' in owners - Filter by owner
- * - trashed = false - Exclude trashed files (always added)
+ * - trashed = true/false - Filter by trash status
  */
-export function toDriveQuery(query: DriveQuery): {
+export function toDriveQuery(query: DriveQuery | string): {
   q: string;
   filters: FiltersObject;
 } {

@@ -1,13 +1,14 @@
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
+import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import assert from 'assert';
 import createTool, { type Input, type Output } from '../../../../src/mcp/tools/files-search.ts';
+import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
-// Type guard for objects shape output
-function isObjectsShape(branch: Output | undefined): branch is Extract<Output, { shape: 'objects' }> {
-  return branch?.type === 'success' && branch.shape === 'objects';
+async function expectMcpError(promise: Promise<unknown>) {
+  await assert.rejects(promise, (error) => error instanceof McpError);
 }
 
 /**
@@ -31,7 +32,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
     it('search returns structured content (or empty array) without throwing', async () => {
       const res = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 5,
           pageToken: undefined,
           fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
@@ -41,20 +42,17 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch) && Array.isArray(branch.items)) {
-        if (branch.items.length > 0) {
-          const first = branch.items[0];
-          if (first) assert.ok(first.id || first.name, 'search item missing id/name');
-        }
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result missing provider field');
+      assertObjectsShape(branch, 'basic search results');
+      if (Array.isArray(branch.items) && branch.items.length > 0) {
+        const first = branch.items[0];
+        if (first) assert.ok(first.id || first.name, 'search item missing id/name');
       }
     });
 
     it('search with shape arrays returns columnar format', async () => {
       const res = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 5,
           pageToken: undefined,
           fields: 'id,name',
@@ -64,18 +62,49 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
       const branch = res.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'success' && branch.shape === 'arrays') {
-        assert.ok(Array.isArray(branch.columns), 'columns should be array');
-        assert.ok(Array.isArray(branch.rows), 'rows should be array');
-        assert.ok(branch.columns.includes('id'), 'columns should include id');
-        assert.ok(branch.columns.includes('name'), 'columns should include name');
-        // Each row should have same length as columns
-        for (const row of branch.rows) {
-          assert.equal(row.length, branch.columns.length, 'row length should match columns length');
-        }
-      } else if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required result missing provider field');
+      assertArraysShape(branch, 'arrays shape search');
+      assert.ok(Array.isArray(branch.columns), 'columns should be array');
+      assert.ok(Array.isArray(branch.rows), 'rows should be array');
+      assert.ok(branch.columns.includes('id'), 'columns should include id');
+      assert.ok(branch.columns.includes('name'), 'columns should include name');
+      // Each row should have same length as columns
+      for (const row of branch.rows) {
+        assert.equal(row.length, branch.columns.length, 'row length should match columns length');
       }
+    });
+  });
+
+  describe('query input formats', () => {
+    async function assertQuery(query: Input['query']) {
+      const res = await fileSearchHandler(
+        {
+          query,
+          pageSize: 5,
+          pageToken: undefined,
+          fields: 'id,name',
+          shape: 'objects',
+        },
+        createExtra()
+      );
+
+      const branch = res.structuredContent?.result as Output | undefined;
+      assertSuccess(branch, 'query input format');
+    }
+
+    it('accepts structured query objects', async () => {
+      await assertQuery({ name: 'document' });
+    });
+
+    it('accepts structured query JSON strings', async () => {
+      await assertQuery(JSON.stringify({ name: 'document' }));
+    });
+
+    it('accepts rawDriveQuery objects', async () => {
+      await assertQuery({ rawDriveQuery: 'name contains "document"' });
+    });
+
+    it('accepts rawDriveQuery JSON strings', async () => {
+      await assertQuery(JSON.stringify({ rawDriveQuery: 'name contains "document"' }));
     });
   });
 
@@ -83,7 +112,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
     it('first page without pageToken', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'name contains "document"',
+          query: { rawDriveQuery: 'name contains "document"' },
           pageSize: 5,
           pageToken: undefined,
           fields: 'id,name',
@@ -93,13 +122,12 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        // Verify we have files array in objects shape
-        assert.ok(Array.isArray(branch.items), 'files should be array');
-        // nextPageToken may or may not be present depending on result count
-        if (branch.nextPageToken) {
-          assert.equal(typeof branch.nextPageToken, 'string', 'nextPageToken should be string when present');
-        }
+      assertObjectsShape(branch, 'first page without pageToken');
+      // Verify we have files array in objects shape
+      assert.ok(Array.isArray(branch.items), 'files should be array');
+      // nextPageToken may or may not be present depending on result count
+      if (branch.nextPageToken) {
+        assert.equal(typeof branch.nextPageToken, 'string', 'nextPageToken should be string when present');
       }
     });
 
@@ -107,7 +135,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       // Get first page to obtain pageToken
       const firstPage = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 3,
           pageToken: undefined,
           fields: 'id,name',
@@ -117,11 +145,12 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const firstBranch = firstPage.structuredContent?.result as Output | undefined;
-      if (firstBranch?.type === 'success' && firstBranch.nextPageToken) {
+      assertObjectsShape(firstBranch, 'first page with pageToken');
+      if (firstBranch.nextPageToken) {
         // Use pageToken for second page
         const secondPage = await fileSearchHandler(
           {
-            query: 'mimeType != ""',
+            query: { rawDriveQuery: 'mimeType != ""' },
             pageSize: 3,
             pageToken: firstBranch.nextPageToken,
             fields: 'id,name',
@@ -131,18 +160,16 @@ describe('drive-file-search comprehensive pagination tests', () => {
         );
 
         const secondBranch = secondPage.structuredContent?.result as Output | undefined;
-        assert.equal(secondBranch?.type, 'success', 'second page should succeed');
+        assertObjectsShape(secondBranch, 'second page');
         // Check for files array in success branch
-        if (isObjectsShape(secondBranch)) {
-          assert.ok(Array.isArray(secondBranch.items), 'second page items should be array');
-        }
+        assert.ok(Array.isArray(secondBranch.items), 'second page items should be array');
       }
     });
 
     it('last page handling (no nextPageToken)', async () => {
       const result = await fileSearchHandler(
         {
-          query: `name contains "very-specific-filename-${Date.now()}"`, // Narrow query likely to return fewer results
+          query: { rawDriveQuery: `name contains "very-specific-filename-${Date.now()}"` }, // Narrow query likely to return fewer results
           pageSize: 100,
           pageToken: undefined,
           fields: 'id,name',
@@ -152,21 +179,20 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        // If we get results but no nextPageToken, this is the last page
-        if (items.length === 0 || !branch.nextPageToken) {
-          assert.ok(true, 'Successfully handled last page without nextPageToken');
-        }
+      assertObjectsShape(branch, 'last page handling');
+      const items = branch.items;
+      // If we get results but no nextPageToken, this is the last page
+      if (items.length === 0 || !branch.nextPageToken) {
+        assert.ok(true, 'Successfully handled last page without nextPageToken');
       }
     });
 
     it('empty results handling', async () => {
-      const uniqueQuery = `name = "nonexistent-file-${Date.now()}.impossible"`;
+      const uniqueQuery = `name = 'nonexistent-file-${Date.now()}.impossible'`;
 
       const result = await fileSearchHandler(
         {
-          query: uniqueQuery,
+          query: { rawDriveQuery: uniqueQuery },
           pageSize: 10,
           pageToken: undefined,
           fields: 'id,name',
@@ -176,17 +202,16 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        assert.equal(items.length, 0, 'should return empty results for non-matching query');
-        assert.equal(branch.nextPageToken, undefined, 'should not have nextPageToken for empty results');
-      }
+      assertObjectsShape(branch, 'empty results handling');
+      const items = branch.items;
+      assert.equal(items.length, 0, 'should return empty results for non-matching query');
+      assert.equal(branch.nextPageToken, undefined, 'should not have nextPageToken for empty results');
     });
 
     it('single page with all results', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'modifiedTime > "2025-09-22"', // Very recent query likely to return small result set
+          query: { rawDriveQuery: 'modifiedTime > "2025-09-22"' }, // Very recent query likely to return small result set
           pageSize: 1000,
           pageToken: undefined,
           fields: 'id,name',
@@ -196,63 +221,58 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        assert.ok(Array.isArray(items), 'items should be array');
-        // Note: Google Drive API may return nextPageToken even when results fit on one page
-        // This is valid API behavior - nextPageToken means "there might be more", not "there definitely are more"
-        if (items.length < 1000 && branch.nextPageToken === undefined) {
-          assert.ok(true, 'no nextPageToken when all results fit on one page');
-        } else if (items.length < 1000) {
-          // API returned a token even though we got fewer results than pageSize - this is acceptable
-          assert.ok(typeof branch.nextPageToken === 'string', 'nextPageToken should be string if present');
-        }
+      assertObjectsShape(branch, 'single page results');
+      const items = branch.items;
+      assert.ok(Array.isArray(items), 'items should be array');
+      // Note: Google Drive API may return nextPageToken even when results fit on one page
+      // This is valid API behavior - nextPageToken means "there might be more", not "there definitely are more"
+      if (items.length < 1000 && branch.nextPageToken === undefined) {
+        assert.ok(true, 'no nextPageToken when all results fit on one page');
+      } else if (items.length < 1000) {
+        // API returned a token even though we got fewer results than pageSize - this is acceptable
+        assert.ok(typeof branch.nextPageToken === 'string', 'nextPageToken should be string if present');
       }
     });
   });
 
   describe('edge case tests', () => {
     it('invalid pageToken handling', async () => {
-      const result = await fileSearchHandler(
-        {
-          query: 'mimeType != ""',
-          pageSize: 5,
-          pageToken: 'invalid-malformed-token-123',
-          fields: 'id,name',
-          shape: 'objects',
-        },
-        createExtra()
+      await expectMcpError(
+        fileSearchHandler(
+          {
+            query: { rawDriveQuery: 'mimeType != ""' },
+            pageSize: 5,
+            pageToken: 'invalid-malformed-token-123',
+            fields: 'id,name',
+            shape: 'objects',
+          },
+          createExtra()
+        )
       );
-
-      const branch = result.structuredContent?.result as Output | undefined;
-      // Should either succeed with empty results or return specific error
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle invalid token gracefully');
     });
 
     it('expired pageToken handling', async () => {
       // Use an old-style token that might be expired
       const expiredToken = 'CAISIhIJCgcI9OjT7gcQChIJCgcI9OjT7gcQChIJCgcI9OjT7gcQ';
 
-      const result = await fileSearchHandler(
-        {
-          query: 'mimeType != ""',
-          pageSize: 5,
-          pageToken: expiredToken,
-          fields: 'id,name',
-          shape: 'objects',
-        },
-        createExtra()
+      await expectMcpError(
+        fileSearchHandler(
+          {
+            query: { rawDriveQuery: 'mimeType != ""' },
+            pageSize: 5,
+            pageToken: expiredToken,
+            fields: 'id,name',
+            shape: 'objects',
+          },
+          createExtra()
+        )
       );
-
-      const branch = result.structuredContent?.result as Output | undefined;
-      // Should handle expired tokens gracefully
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle expired token gracefully');
     });
 
     it('maximum page size handling', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 1000, // Maximum allowed
           pageToken: undefined,
           fields: 'id,name',
@@ -262,16 +282,15 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        assert.ok(items.length <= 1000, 'should respect maximum page size');
-      }
+      assertObjectsShape(branch, 'maximum page size');
+      const items = branch.items;
+      assert.ok(items.length <= 1000, 'should respect maximum page size');
     });
 
     it('very large page size clamping', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 50000, // Exceeds maximum
           pageToken: undefined,
           fields: 'id,name',
@@ -281,17 +300,16 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        // Should be clamped to maximum allowed (1000)
-        assert.ok(items.length <= 1000, 'should clamp to maximum allowed page size');
-      }
+      assertObjectsShape(branch, 'large page size clamping');
+      const items = branch.items;
+      // Should be clamped to maximum allowed (1000)
+      assert.ok(items.length <= 1000, 'should clamp to maximum allowed page size');
     });
 
     it('zero page size handling', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 0,
           pageToken: undefined,
           fields: 'id,name',
@@ -302,13 +320,13 @@ describe('drive-file-search comprehensive pagination tests', () => {
 
       const branch = result.structuredContent?.result as Output | undefined;
       // Should either use default or return error
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle zero page size');
+      assertObjectsShape(branch, 'zero page size');
     });
 
     it('negative page size handling', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: -10,
           pageToken: undefined,
           fields: 'id,name',
@@ -319,7 +337,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
 
       const branch = result.structuredContent?.result as Output | undefined;
       // Should either use default or return error
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle negative page size');
+      assertObjectsShape(branch, 'negative page size');
     });
   });
 
@@ -329,7 +347,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const promises = Array.from({ length: 5 }, () =>
         fileSearchHandler(
           {
-            query: 'mimeType != ""',
+            query: { rawDriveQuery: 'mimeType != ""' },
             pageSize: 10,
             pageToken: undefined,
             fields: 'id,name',
@@ -345,19 +363,19 @@ describe('drive-file-search comprehensive pagination tests', () => {
       for (const result of results) {
         if (result.status === 'fulfilled') {
           const branch: Output | undefined = result.value?.structuredContent?.result as Output | undefined;
-          assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle quota limits gracefully');
+          assertSuccess(branch, 'quota limits');
         }
       }
     });
 
     it('validates Drive query syntax', async () => {
       // Test various Drive query patterns
-      const queries = ['name contains "test"', 'mimeType = "application/pdf"', 'parents in "folder-id"', 'fullText contains "important"', 'modifiedTime > "2024-01-01T00:00:00"'];
+      const queries = ["name contains 'test'", "mimeType = 'application/pdf'", "'root' in parents", "fullText contains 'important'", "modifiedTime > '2024-01-01T00:00:00Z'"];
 
       for (const query of queries) {
         const result = await fileSearchHandler(
           {
-            query,
+            query: { rawDriveQuery: query },
             pageSize: 5,
             pageToken: undefined,
             fields: 'id,name',
@@ -367,17 +385,17 @@ describe('drive-file-search comprehensive pagination tests', () => {
         );
 
         const branch = result.structuredContent?.result as Output | undefined;
-        assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', `should handle Drive query: ${query}`);
+        assertSuccess(branch, `Drive query: ${query}`);
       }
     });
 
     it('handles complex Drive queries', async () => {
       // Test complex query with multiple conditions
-      const complexQuery = 'name contains "document" and mimeType = "application/pdf" and trashed = false';
+      const complexQuery = "name contains 'document' and mimeType = 'application/pdf' and trashed = false";
 
       const result = await fileSearchHandler(
         {
-          query: complexQuery,
+          query: { rawDriveQuery: complexQuery },
           pageSize: 10,
           pageToken: undefined,
           fields: 'id,name',
@@ -387,17 +405,15 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle complex Drive queries');
+      assertSuccess(branch, 'complex Drive queries');
     });
   });
 
   describe('error handling tests', () => {
-    it('auth failure response handling', async () => {
-      // This test requires manual credential invalidation or specific test setup
-      // For now, we test that auth_required responses are properly structured
+    it('requires auth to succeed', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 1,
           pageToken: undefined,
           fields: 'id,name',
@@ -407,47 +423,39 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (branch?.type === 'auth_required') {
-        assert.ok(branch.provider, 'auth_required should have provider');
-        assert.ok(branch.message, 'auth_required should have message');
-        assert.ok(branch.url, 'auth_required should have auth URL');
-      }
+      assertSuccess(branch, 'auth requirement');
     });
 
     it('Drive API error handling', async () => {
       // Test with invalid Drive query syntax
-      const result = await fileSearchHandler(
-        {
-          query: 'invalid_field = "value"', // Invalid field name
-          pageSize: 5,
-          pageToken: undefined,
-          fields: 'id,name',
-          shape: 'objects',
-        },
-        createExtra()
+      await expectMcpError(
+        fileSearchHandler(
+          {
+            query: { rawDriveQuery: 'invalid_field = "value"' }, // Invalid field name
+            pageSize: 5,
+            pageToken: undefined,
+            fields: 'id,name',
+            shape: 'objects',
+          },
+          createExtra()
+        )
       );
-
-      const branch = result.structuredContent?.result as Output | undefined;
-      // Should handle Drive API errors gracefully
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle Drive API errors');
     });
 
     it('malformed query handling', async () => {
       // Test with malformed query syntax
-      const result = await fileSearchHandler(
-        {
-          query: 'name contains', // Incomplete query
-          pageSize: 5,
-          pageToken: undefined,
-          fields: 'id,name',
-          shape: 'objects',
-        },
-        createExtra()
+      await expectMcpError(
+        fileSearchHandler(
+          {
+            query: { rawDriveQuery: 'name contains' }, // Incomplete query
+            pageSize: 5,
+            pageToken: undefined,
+            fields: 'id,name',
+            shape: 'objects',
+          },
+          createExtra()
+        )
       );
-
-      const branch = result.structuredContent?.result as Output | undefined;
-      // Should handle malformed queries gracefully
-      assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'should handle malformed queries');
     });
   });
 
@@ -457,20 +465,18 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const maliciousQueries = ['name contains "test" OR parents in "*"', 'name contains "test"; DROP TABLE files', 'name contains "test" UNION SELECT *', 'name contains "\\"" OR "1"="1"'];
 
       for (const query of maliciousQueries) {
-        const result = await fileSearchHandler(
-          {
-            query,
-            pageSize: 5,
-            pageToken: undefined,
-            fields: 'id,name',
-            shape: 'objects',
-          },
-          createExtra()
+        await expectMcpError(
+          fileSearchHandler(
+            {
+              query: { rawDriveQuery: query },
+              pageSize: 5,
+              pageToken: undefined,
+              fields: 'id,name',
+              shape: 'objects',
+            },
+            createExtra()
+          )
         );
-
-        const branch = result.structuredContent?.result as Output | undefined;
-        // Should sanitize or reject malicious queries
-        assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', `should handle malicious query safely: ${query.slice(0, 30)}...`);
       }
     });
 
@@ -479,20 +485,18 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const maliciousTokens = ['../../../etc/passwd', '<script>alert("xss")</script>', 'https://malicious.com/steal-data', 'file:///sensitive-file.txt'];
 
       for (const token of maliciousTokens) {
-        const result = await fileSearchHandler(
-          {
-            query: 'mimeType != ""',
-            pageSize: 5,
-            pageToken: token,
-            fields: 'id,name',
-            shape: 'objects',
-          },
-          createExtra()
+        await expectMcpError(
+          fileSearchHandler(
+            {
+              query: { rawDriveQuery: 'mimeType != ""' },
+              pageSize: 5,
+              pageToken: token,
+              fields: 'id,name',
+              shape: 'objects',
+            },
+            createExtra()
+          )
         );
-
-        const branch = result.structuredContent?.result as Output | undefined;
-        // Should reject or sanitize malicious tokens
-        assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', `should handle malicious token safely: ${token}`);
       }
     });
 
@@ -501,34 +505,39 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const veryLongQuery = `name contains "${'a'.repeat(10000)}"`;
       const veryLongToken = `token${'x'.repeat(50000)}`;
 
-      const queryResult = await fileSearchHandler(
-        {
-          query: veryLongQuery,
-          pageSize: 5,
-          pageToken: undefined,
-          fields: 'id,name',
-          shape: 'objects',
-        },
-        createExtra()
-      );
+      try {
+        const queryResult = await fileSearchHandler(
+          {
+            query: { rawDriveQuery: veryLongQuery },
+            pageSize: 5,
+            pageToken: undefined,
+            fields: 'id,name',
+            shape: 'objects',
+          },
+          createExtra()
+        );
+        const queryBranch = queryResult.structuredContent?.result as Output | undefined;
+        assertObjectsShape(queryBranch, 'very long query');
+      } catch (error) {
+        assert.ok(error instanceof McpError, 'should throw McpError for very long query');
+      }
 
-      const tokenResult = await fileSearchHandler(
-        {
-          query: 'mimeType != ""',
-          pageSize: 5,
-          pageToken: veryLongToken,
-          fields: 'id,name',
-          shape: 'objects',
-        },
-        createExtra()
-      );
-
-      const queryBranch = queryResult.structuredContent?.result as Output | undefined;
-      const tokenBranch = tokenResult.structuredContent?.result as Output | undefined;
-
-      // Should handle or reject overly long inputs
-      assert.ok(queryBranch?.type === 'success' || queryBranch?.type === 'auth_required', 'should handle very long query');
-      assert.ok(tokenBranch?.type === 'success' || tokenBranch?.type === 'auth_required', 'should handle very long token');
+      try {
+        const tokenResult = await fileSearchHandler(
+          {
+            query: { rawDriveQuery: 'mimeType != ""' },
+            pageSize: 5,
+            pageToken: veryLongToken,
+            fields: 'id,name',
+            shape: 'objects',
+          },
+          createExtra()
+        );
+        const tokenBranch = tokenResult.structuredContent?.result as Output | undefined;
+        assertObjectsShape(tokenBranch, 'very long token');
+      } catch (error) {
+        assert.ok(error instanceof McpError, 'should throw McpError for very long token');
+      }
     });
   });
 
@@ -538,7 +547,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
 
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 100,
           pageToken: undefined,
           fields: 'id,name',
@@ -550,12 +559,11 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const elapsedTime = Date.now() - startTime;
       const branch = result.structuredContent?.result as Output | undefined;
 
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        // Should complete within reasonable time
-        assert.ok(elapsedTime < 30000, 'should complete within 30 seconds');
-        assert.ok(items.length <= 100, 'should respect page size for performance');
-      }
+      assertObjectsShape(branch, 'large dataset performance');
+      const items = branch.items;
+      // Should complete within reasonable time
+      assert.ok(elapsedTime < 30000, 'should complete within 30 seconds');
+      assert.ok(items.length <= 100, 'should respect page size for performance');
     });
 
     it('concurrent pagination requests', async () => {
@@ -563,7 +571,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const promises = [
         fileSearchHandler(
           {
-            query: 'mimeType != ""',
+            query: { rawDriveQuery: 'mimeType != ""' },
             pageSize: 10,
             pageToken: undefined,
             fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
@@ -573,7 +581,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         ),
         fileSearchHandler(
           {
-            query: 'name contains "document"',
+            query: { rawDriveQuery: 'name contains "document"' },
             pageSize: 10,
             pageToken: undefined,
             fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
@@ -583,7 +591,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         ),
         fileSearchHandler(
           {
-            query: 'mimeType = "application/pdf"',
+            query: { rawDriveQuery: 'mimeType = "application/pdf"' },
             pageSize: 10,
             pageToken: undefined,
             fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
@@ -599,7 +607,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       for (const result of results) {
         if (result.status === 'fulfilled') {
           const branch: Output | undefined = result.value?.structuredContent?.result as Output | undefined;
-          assert.ok(branch?.type === 'success' || branch?.type === 'auth_required', 'concurrent requests should complete');
+          assertSuccess(branch, 'concurrent requests');
         }
       }
     });
@@ -607,7 +615,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
     it('memory usage estimation for large results', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 200,
           pageToken: undefined,
           fields: 'id,name',
@@ -617,16 +625,15 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        const items = branch.items;
-        if (items.length > 0) {
-          // Estimate memory usage per item
-          const sampleItem = JSON.stringify(items[0]);
-          const estimatedMemoryMb = (sampleItem.length * items.length) / (1024 * 1024);
+      assertObjectsShape(branch, 'memory usage estimation');
+      const items = branch.items;
+      if (items.length > 0) {
+        // Estimate memory usage per item
+        const sampleItem = JSON.stringify(items[0]);
+        const estimatedMemoryMb = (sampleItem.length * items.length) / (1024 * 1024);
 
-          // Should be reasonable for typical file metadata
-          assert.ok(estimatedMemoryMb < 100, 'memory usage should be reasonable for file metadata');
-        }
+        // Should be reasonable for typical file metadata
+        assert.ok(estimatedMemoryMb < 100, 'memory usage should be reasonable for file metadata');
       }
     });
   });
@@ -635,7 +642,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
     it('drive file field mapping consistency', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 5,
           pageToken: undefined,
           fields: 'id,name,mimeType,webViewLink,modifiedTime,owners', // Changed to true to get full items
@@ -645,32 +652,31 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        // When includeData is true, we get items with full metadata
-        const items = branch.items || [];
-        if (items.length > 0) {
-          const firstItem = items[0];
-          if (!firstItem) throw new Error('Expected firstItem');
+      assertObjectsShape(branch, 'field mapping consistency');
+      // When includeData is true, we get items with full metadata
+      const items = branch.items || [];
+      if (items.length > 0) {
+        const firstItem = items[0];
+        if (!firstItem) throw new Error('Expected firstItem');
 
-          // Verify expected Drive file fields are present
-          const requiredFields = ['id', 'name'];
-          for (const field of requiredFields) {
-            assert.ok(field in firstItem, `should have ${field} field`);
-          }
+        // Verify expected Drive file fields are present
+        const requiredFields = ['id', 'name'];
+        for (const field of requiredFields) {
+          assert.ok(field in firstItem, `should have ${field} field`);
+        }
 
-          // Verify optional fields when present
-          if (firstItem.mimeType) {
-            assert.equal(typeof firstItem.mimeType, 'string', 'mimeType should be string');
-          }
-          if (firstItem.webViewLink) {
-            assert.equal(typeof firstItem.webViewLink, 'string', 'webViewLink should be string');
-          }
-          if (firstItem.modifiedTime) {
-            assert.equal(typeof firstItem.modifiedTime, 'string', 'modifiedTime should be string');
-          }
-          if (firstItem.owners) {
-            assert.ok(Array.isArray(firstItem.owners), 'owners should be array');
-          }
+        // Verify optional fields when present
+        if (firstItem.mimeType) {
+          assert.equal(typeof firstItem.mimeType, 'string', 'mimeType should be string');
+        }
+        if (firstItem.webViewLink) {
+          assert.equal(typeof firstItem.webViewLink, 'string', 'webViewLink should be string');
+        }
+        if (firstItem.modifiedTime) {
+          assert.equal(typeof firstItem.modifiedTime, 'string', 'modifiedTime should be string');
+        }
+        if (firstItem.owners) {
+          assert.ok(Array.isArray(firstItem.owners), 'owners should be array');
         }
       }
     });
@@ -678,7 +684,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
     it('owners field formatting', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 5,
           pageToken: undefined,
           fields: 'id,name,mimeType,webViewLink,modifiedTime,owners', // Changed to true to get full items
@@ -688,20 +694,19 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        // When includeData is true, we get items with full metadata
-        const items = branch.items || [];
-        for (const item of items) {
-          if (item.owners && Array.isArray(item.owners)) {
-            for (const owner of item.owners) {
-              // Verify owner object structure
-              if (owner.displayName) {
-                assert.equal(typeof owner.displayName, 'string', 'owner displayName should be string');
-              }
-              if (owner.emailAddress) {
-                assert.equal(typeof owner.emailAddress, 'string', 'owner emailAddress should be string');
-                assert.ok(owner.emailAddress.includes('@'), 'owner emailAddress should be valid email');
-              }
+      assertObjectsShape(branch, 'owners field formatting');
+      // When includeData is true, we get items with full metadata
+      const items = branch.items || [];
+      for (const item of items) {
+        if (item.owners && Array.isArray(item.owners)) {
+          for (const owner of item.owners) {
+            // Verify owner object structure
+            if (owner.displayName) {
+              assert.equal(typeof owner.displayName, 'string', 'owner displayName should be string');
+            }
+            if (owner.emailAddress) {
+              assert.equal(typeof owner.emailAddress, 'string', 'owner emailAddress should be string');
+              assert.ok(owner.emailAddress.includes('@'), 'owner emailAddress should be valid email');
             }
           }
         }
@@ -711,7 +716,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
     it('date format consistency', async () => {
       const result = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 5,
           pageToken: undefined,
           fields: 'id,name,mimeType,webViewLink,modifiedTime,owners', // Changed to true to get full items
@@ -721,15 +726,14 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const branch = result.structuredContent?.result as Output | undefined;
-      if (isObjectsShape(branch)) {
-        // When includeData is true, we get items with full metadata
-        const items = branch.items || [];
-        for (const item of items) {
-          if (item.modifiedTime) {
-            // Verify date is in valid format
-            const dateObj = new Date(item.modifiedTime);
-            assert.ok(!Number.isNaN(dateObj.getTime()), 'modifiedTime should be valid ISO format');
-          }
+      assertObjectsShape(branch, 'date format consistency');
+      // When includeData is true, we get items with full metadata
+      const items = branch.items || [];
+      for (const item of items) {
+        if (item.modifiedTime) {
+          // Verify date is in valid format
+          const dateObj = new Date(item.modifiedTime);
+          assert.ok(!Number.isNaN(dateObj.getTime()), 'modifiedTime should be valid ISO format');
         }
       }
     });
@@ -747,7 +751,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         pageCount++;
         const result = await fileSearchHandler(
           {
-            query: 'mimeType != ""',
+            query: { rawDriveQuery: 'mimeType != ""' },
             pageSize: 5,
             pageToken,
             fields: 'id,name',
@@ -757,14 +761,11 @@ describe('drive-file-search comprehensive pagination tests', () => {
         );
 
         const branch = result.structuredContent?.result as Output | undefined;
-        if (isObjectsShape(branch)) {
-          // Collect files from this page
-          const items = branch.items || [];
-          allItems.push(...items);
-          pageToken = branch.nextPageToken;
-        } else {
-          break; // Stop on error or auth_required
-        }
+        assertObjectsShape(branch, 'complete pagination workflow page');
+        // Collect files from this page
+        const items = branch.items || [];
+        allItems.push(...items);
+        pageToken = branch.nextPageToken;
       } while (pageToken && pageCount < maxPages);
 
       if (allItems.length > 0) {
@@ -792,7 +793,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       // Get first page
       const firstPage = await fileSearchHandler(
         {
-          query: 'mimeType != ""',
+          query: { rawDriveQuery: 'mimeType != ""' },
           pageSize: 3,
           pageToken: undefined,
           fields: 'id,name',
@@ -802,44 +803,46 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const firstBranch = firstPage.structuredContent?.result as Output | undefined;
-      if (firstBranch?.type === 'success' && firstBranch.nextPageToken) {
-        // Simulate session recovery by using pageToken independently
-        const recoveredPage = await fileSearchHandler(
-          {
-            query: 'mimeType != ""',
-            pageSize: 3,
-            pageToken: firstBranch.nextPageToken,
-            fields: 'id,name',
-            shape: 'objects',
-          },
-          createExtra()
-        );
+      assertObjectsShape(firstBranch, 'pagination state recovery first page');
+      if (!firstBranch.nextPageToken) {
+        return;
+      }
+      // Simulate session recovery by using pageToken independently
+      const recoveredPage = await fileSearchHandler(
+        {
+          query: { rawDriveQuery: 'mimeType != ""' },
+          pageSize: 3,
+          pageToken: firstBranch.nextPageToken,
+          fields: 'id,name',
+          shape: 'objects',
+        },
+        createExtra()
+      );
 
-        const recoveredBranch = recoveredPage.structuredContent?.result as Output | undefined;
-        assert.equal(recoveredBranch?.type, 'success', 'should recover pagination state successfully');
+      const recoveredBranch = recoveredPage.structuredContent?.result as Output | undefined;
+      assertObjectsShape(recoveredBranch, 'pagination state recovery recovered page');
 
-        // When includeData is false, we get fileIds instead of items
-        const recoveredItems = isObjectsShape(recoveredBranch) ? recoveredBranch.items : [];
-        const firstItems = isObjectsShape(firstBranch) ? firstBranch.items : [];
-        if (recoveredItems.length > 0 && firstItems.length > 0) {
-          const firstPageIds = new Set(firstItems.map((item) => item.id));
-          const recoveredPageIds = recoveredItems.map((item) => item.id);
+      // When includeData is false, we get fileIds instead of items
+      const recoveredItems = recoveredBranch.items;
+      const firstItems = firstBranch.items;
+      if (recoveredItems.length > 0 && firstItems.length > 0) {
+        const firstPageIds = new Set(firstItems.map((item) => item.id));
+        const recoveredPageIds = recoveredItems.map((item) => item.id);
 
-          for (const id of recoveredPageIds) {
-            assert.ok(!firstPageIds.has(id), 'recovered page should not have items from first page');
-          }
+        for (const id of recoveredPageIds) {
+          assert.ok(!firstPageIds.has(id), 'recovered page should not have items from first page');
         }
       }
     });
 
     it('cross-query pagination consistency', async () => {
       // Test that different queries handle pagination consistently
-      const queries = ['mimeType != ""', 'name contains "document"', 'mimeType = "application/pdf"'];
+      const queries = ["mimeType != ''", "name contains 'document'", "mimeType = 'application/pdf'"];
 
       for (const query of queries) {
         const result = await fileSearchHandler(
           {
-            query,
+            query: { rawDriveQuery: query },
             pageSize: 10,
             pageToken: undefined,
             fields: 'id,name',
@@ -849,12 +852,11 @@ describe('drive-file-search comprehensive pagination tests', () => {
         );
 
         const branch = result.structuredContent?.result as Output | undefined;
-        if (isObjectsShape(branch)) {
-          // When using objects shape, we get files array
-          assert.ok(Array.isArray(branch.items), `files should be array for query: ${query}`);
-          if (branch.nextPageToken) {
-            assert.equal(typeof branch.nextPageToken, 'string', `nextPageToken should be string for query: ${query}`);
-          }
+        assertObjectsShape(branch, `cross-query pagination: ${query}`);
+        // When using objects shape, we get files array
+        assert.ok(Array.isArray(branch.items), `files should be array for query: ${query}`);
+        if (branch.nextPageToken) {
+          assert.equal(typeof branch.nextPageToken, 'string', `nextPageToken should be string for query: ${query}`);
         }
       }
     });
