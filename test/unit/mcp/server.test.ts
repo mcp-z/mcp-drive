@@ -58,7 +58,7 @@ describe('Drive MCP Server Component Tests', () => {
       const toolNames = result.tools.map((tool) => tool.name);
 
       // Expected Drive tools based on servers/mcp-drive/src/mcp/tools/index.ts
-      const expectedTools = ['file-move', 'file-move-to-trash', 'folder-contents', 'folder-create', 'folder-path', 'folder-search', 'files-search'];
+      const expectedTools = ['file-move', 'file-move-to-trash', 'file-upload', 'folder-contents', 'folder-create', 'folder-path', 'folder-search', 'files-search'];
 
       // Verify each expected tool is registered
       for (const expectedTool of expectedTools) {
