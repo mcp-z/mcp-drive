@@ -11,6 +11,7 @@
 import type { AuthCapabilities } from '@mcp-z/client';
 import { DcrAuthenticator } from '@mcp-z/client';
 import assert from 'assert';
+import createStore from '../../src/lib/create-store.ts';
 
 /** Silent logger for tests */
 const logger = {
@@ -30,7 +31,6 @@ describe('DCR Self-Hosted Integration', () => {
       tokenEndpoint: 'http://127.0.0.1:1/oauth/token',
     };
 
-    const createStore = (await import('../../src/lib/create-store.js')).default;
     const freshStore = await createStore('file://.//.tmp/dcr-test-store.json');
 
     const authenticator = new DcrAuthenticator({
