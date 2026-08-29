@@ -8,6 +8,7 @@ Google Drive MCP server for searching files, browsing folders, and managing Driv
 - Search files and folders
 - Browse folder contents and paths
 - Move, create, and trash Drive items
+- Upload files from a local path or URL
 
 ## Transports
 
@@ -172,11 +173,12 @@ mcp-z call drive files-search '{"query":"name contains \\\"report\\\""}'
 
 1. file-move
 2. file-move-to-trash
-3. files-search
-4. folder-contents
-5. folder-create
-6. folder-path
-7. folder-search
+3. file-upload
+4. files-search
+5. folder-contents
+6. folder-create
+7. folder-path
+8. folder-search
 
 ## Resources
 
