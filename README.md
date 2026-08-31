@@ -1,7 +1,6 @@
 # @mcp-z/mcp-drive
 
-Docs: https://mcp-z.github.io/mcp-drive
-Google Drive MCP server for searching files, browsing folders, and managing Drive content.
+Docs: https://mcp-z.github.io/mcp-drive Google Drive MCP server for searching files, browsing folders, and managing Drive content.
 
 ## Common uses
 
@@ -105,8 +104,7 @@ Example (http) - Create .mcp.json:
 }
 ```
 
-Local (default): omit REDIRECT_URI → ephemeral loopback.
-Cloud: set REDIRECT_URI to your public /oauth/callback and expose the service publicly.
+Local (default): omit REDIRECT_URI → ephemeral loopback. Cloud: set REDIRECT_URI to your public /oauth/callback and expose the service publicly.
 
 Note: start block is a helper in "npx @mcp-z/cli up" for starting an http server from your .mpc.json. See [@mcp-z/cli](https://github.com/mcp-z/cli) for details.
 
@@ -195,13 +193,11 @@ See `server.json` for all supported environment variables, CLI arguments, and de
 
 ## Storage backends
 
-OAuth tokens (`TOKEN_STORE_URI`) and DCR registrations (`DCR_STORE_URI`) are stored through
-[keyv-registry](https://www.npmjs.com/package/keyv-registry), which picks an adapter from the URI protocol.
+OAuth tokens (`TOKEN_STORE_URI`) and DCR registrations (`DCR_STORE_URI`) are stored through [keyv-registry](https://www.npmjs.com/package/keyv-registry), which picks an adapter from the URI protocol.
 
 `file://` (the default, under `~/.mcp-z/`) and `memory://` work with no extra setup.
 
-Any other backend needs its adapter installed alongside this server. Adapters are resolved with
-`require()`, so a globally installed server finds a globally installed adapter:
+Any other backend needs its adapter installed alongside this server. Adapters are resolved with `require()`, so a globally installed server finds a globally installed adapter:
 
 ```bash
 npm install -g @mcp-z/mcp-drive @keyv/redis
