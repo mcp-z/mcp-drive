@@ -1,11 +1,11 @@
+import type { ServerConfig } from '@mcp-z/mcp-drive';
+import { setup } from '@mcp-z/mcp-drive';
 import assert from 'assert';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import { safeRmSync } from 'fs-remove-compat';
 import getPort from 'get-port';
 import * as path from 'path';
-import { setup } from '@mcp-z/mcp-drive';
-import type { ServerConfig } from '@mcp-z/mcp-drive';
 
 describe('createServer - transport initialization', () => {
   const servers: Awaited<ReturnType<typeof setup.createHTTPServer>>[] = [];

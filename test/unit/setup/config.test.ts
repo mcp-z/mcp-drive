@@ -1,5 +1,5 @@
-import assert from 'assert';
 import { setup } from '@mcp-z/mcp-drive';
+import assert from 'assert';
 
 describe('setup.parseConfig', () => {
   it('defaults to stdio transport with no args or env', () => {

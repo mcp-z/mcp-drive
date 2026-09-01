@@ -1,8 +1,8 @@
+import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
-import { type Input, type Output } from '../../../../src/mcp/tools/folder-contents.ts';
-import { mcp } from '@mcp-z/mcp-drive';
+import type { Input, Output } from '../../../../src/mcp/tools/folder-contents.ts';
 import { assertArraysShape, assertObjectsShape } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
