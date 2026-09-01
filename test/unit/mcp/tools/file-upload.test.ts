@@ -6,7 +6,8 @@ import getPort from 'get-port';
 import { google } from 'googleapis';
 import { createServer, type Server } from 'http';
 import { join } from 'path';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/file-upload.ts';
+import { type Input, type Output } from '../../../../src/mcp/tools/file-upload.ts';
+import { mcp } from '@mcp-z/mcp-drive';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 import { deleteTestFolder } from '../../../lib/folder-helpers.ts';
@@ -34,7 +35,7 @@ describe('drive-file-upload tests', () => {
     auth = middlewareContext.auth;
     logger = middlewareContext.logger;
     const middleware = middlewareContext.middleware;
-    const tool = createTool();
+    const tool = mcp.toolFactories.fileUpload();
     const wrappedTool = middleware.withToolAuth(tool);
     fileUploadHandler = wrappedTool.handler;
   });

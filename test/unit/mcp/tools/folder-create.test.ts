@@ -2,7 +2,8 @@ import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import { google } from 'googleapis';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/folder-create.ts';
+import { type Input, type Output } from '../../../../src/mcp/tools/folder-create.ts';
+import { mcp } from '@mcp-z/mcp-drive';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 import { deleteTestFolder } from '../../../lib/folder-helpers.ts';
@@ -29,7 +30,7 @@ describe('drive-folder-create tests', () => {
     auth = middlewareContext.auth;
     logger = middlewareContext.logger;
     const middleware = middlewareContext.middleware;
-    const tool = createTool();
+    const tool = mcp.toolFactories.folderCreate();
     const wrappedTool = middleware.withToolAuth(tool);
     folderCreateHandler = wrappedTool.handler;
   });

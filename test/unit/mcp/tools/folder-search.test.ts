@@ -2,7 +2,8 @@ import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import assert from 'assert';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/folder-search.ts';
+import { type Input, type Output } from '../../../../src/mcp/tools/folder-search.ts';
+import { mcp } from '@mcp-z/mcp-drive';
 import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
@@ -19,7 +20,7 @@ describe('drive-folder-search comprehensive tests', () => {
   before(async () => {
     const middlewareContext = await createMiddlewareContext();
     const middleware = middlewareContext.middleware;
-    const tool = createTool();
+    const tool = mcp.toolFactories.folderSearch();
     const wrappedTool = middleware.withToolAuth(tool);
     folderSearchHandler = wrappedTool.handler;
   });
