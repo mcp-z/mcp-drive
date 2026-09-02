@@ -7,10 +7,6 @@ import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../l
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
-async function expectMcpError(promise: Promise<unknown>) {
-  await assert.rejects(promise, (error) => error instanceof McpError);
-}
-
 /**
  * Comprehensive pagination flow test coverage for Drive file search tool
  *
@@ -237,7 +233,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
 
   describe('edge case tests', () => {
     it('invalid pageToken handling', async () => {
-      await expectMcpError(
+      await assert.rejects(
         fileSearchHandler(
           {
             query: { rawDriveQuery: 'mimeType != ""' },
@@ -247,7 +243,8 @@ describe('drive-file-search comprehensive pagination tests', () => {
             shape: 'objects',
           },
           createExtra()
-        )
+        ),
+        (error) => error instanceof McpError
       );
     });
 
@@ -255,7 +252,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       // Use an old-style token that might be expired
       const expiredToken = 'CAISIhIJCgcI9OjT7gcQChIJCgcI9OjT7gcQChIJCgcI9OjT7gcQ';
 
-      await expectMcpError(
+      await assert.rejects(
         fileSearchHandler(
           {
             query: { rawDriveQuery: 'mimeType != ""' },
@@ -265,7 +262,8 @@ describe('drive-file-search comprehensive pagination tests', () => {
             shape: 'objects',
           },
           createExtra()
-        )
+        ),
+        (error) => error instanceof McpError
       );
     });
 
@@ -428,7 +426,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
 
     it('Drive API error handling', async () => {
       // Test with invalid Drive query syntax
-      await expectMcpError(
+      await assert.rejects(
         fileSearchHandler(
           {
             query: { rawDriveQuery: 'invalid_field = "value"' }, // Invalid field name
@@ -438,13 +436,14 @@ describe('drive-file-search comprehensive pagination tests', () => {
             shape: 'objects',
           },
           createExtra()
-        )
+        ),
+        (error) => error instanceof McpError
       );
     });
 
     it('malformed query handling', async () => {
       // Test with malformed query syntax
-      await expectMcpError(
+      await assert.rejects(
         fileSearchHandler(
           {
             query: { rawDriveQuery: 'name contains' }, // Incomplete query
@@ -454,7 +453,8 @@ describe('drive-file-search comprehensive pagination tests', () => {
             shape: 'objects',
           },
           createExtra()
-        )
+        ),
+        (error) => error instanceof McpError
       );
     });
   });
@@ -465,7 +465,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const maliciousQueries = ['name contains "test" OR parents in "*"', 'name contains "test"; DROP TABLE files', 'name contains "test" UNION SELECT *', 'name contains "\\"" OR "1"="1"'];
 
       for (const query of maliciousQueries) {
-        await expectMcpError(
+        await assert.rejects(
           fileSearchHandler(
             {
               query: { rawDriveQuery: query },
@@ -475,7 +475,8 @@ describe('drive-file-search comprehensive pagination tests', () => {
               shape: 'objects',
             },
             createExtra()
-          )
+          ),
+          (error) => error instanceof McpError
         );
       }
     });
@@ -485,7 +486,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       const maliciousTokens = ['../../../etc/passwd', '<script>alert("xss")</script>', 'https://malicious.com/steal-data', 'file:///sensitive-file.txt'];
 
       for (const token of maliciousTokens) {
-        await expectMcpError(
+        await assert.rejects(
           fileSearchHandler(
             {
               query: { rawDriveQuery: 'mimeType != ""' },
@@ -495,7 +496,8 @@ describe('drive-file-search comprehensive pagination tests', () => {
               shape: 'objects',
             },
             createExtra()
-          )
+          ),
+          (error) => error instanceof McpError
         );
       }
     });

@@ -7,10 +7,6 @@ import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../l
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 
-async function expectMcpError(promise: Promise<unknown>) {
-  await assert.rejects(promise, (error) => error instanceof McpError);
-}
-
 /**
  * Comprehensive tests for Drive folder search tool
  *
@@ -416,7 +412,7 @@ describe('drive-folder-search comprehensive tests', () => {
 
   describe('error handling', () => {
     it('handles invalid queries gracefully', async () => {
-      await expectMcpError(
+      await assert.rejects(
         folderSearchHandler(
           {
             query: { rawDriveQuery: 'invalid_field = "value"' },
@@ -427,12 +423,13 @@ describe('drive-folder-search comprehensive tests', () => {
             shape: 'objects',
           },
           createExtra()
-        )
+        ),
+        (error) => error instanceof McpError
       );
     });
 
     it('handles invalid pageToken gracefully', async () => {
-      await expectMcpError(
+      await assert.rejects(
         folderSearchHandler(
           {
             query: undefined,
@@ -443,7 +440,8 @@ describe('drive-folder-search comprehensive tests', () => {
             shape: 'objects',
           },
           createExtra()
-        )
+        ),
+        (error) => error instanceof McpError
       );
     });
   });
