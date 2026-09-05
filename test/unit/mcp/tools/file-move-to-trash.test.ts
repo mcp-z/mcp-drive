@@ -1,7 +1,8 @@
+import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
-import createTool, { type Input, type Output } from '../../../../src/mcp/tools/file-move-to-trash.ts';
+import type { Input, Output } from '../../../../src/mcp/tools/file-move-to-trash.ts';
 import { assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
@@ -12,7 +13,7 @@ describe('drive-file-move-to-trash', () => {
   before(async () => {
     const middlewareContext = await createMiddlewareContext();
     const middleware = middlewareContext.middleware;
-    const tool = createTool();
+    const tool = mcp.toolFactories.fileMoveToTrash();
     const wrappedTool = middleware.withToolAuth(tool);
     fileMoveToTrashHandler = wrappedTool.handler;
   });

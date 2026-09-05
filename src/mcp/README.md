@@ -1,6 +1,6 @@
 # MCP Tools and Resources
 
-Docs: https://mcp-z.github.io/mcp-drive This directory contains MCP tool and resource implementations for Google Drive.
+This directory contains MCP tool and resource implementations for Google Drive.
 
 ## Tools vs Resources: Authentication Patterns
 

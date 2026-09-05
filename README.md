@@ -1,6 +1,6 @@
 # @mcp-z/mcp-drive
 
-Docs: https://mcp-z.github.io/mcp-drive Google Drive MCP server for searching files, browsing folders, and managing Drive content.
+MCP server for Google Drive integration with file operations, folder navigation, search capabilities, and sharing management
 
 ## Common uses
 
@@ -206,3 +206,7 @@ TOKEN_STORE_URI=redis://localhost:6379 mcp-drive
 ```
 
 A protocol whose adapter is missing fails at startup naming the package to install.
+
+### Documentation
+
+[API Docs](https://mcp-z.github.io/mcp-drive)
