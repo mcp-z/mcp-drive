@@ -9,7 +9,7 @@
  */
 
 import type { AuthCapabilities } from '@mcp-z/client';
-import { DcrAuthenticator } from '@mcp-z/client';
+import { DcrAuthenticator, DiscoveryFetchError } from '@mcp-z/client';
 import assert from 'assert';
 import createStore from '../../src/lib/create-store.ts';
 
@@ -41,7 +41,9 @@ describe('DCR Self-Hosted Integration', () => {
 
     // This should detect self-hosted mode due to localhost URL,
     // attempt self-hosted authentication, and fail when server is unreachable
-    await assert.rejects(authenticator.ensureAuthenticated('http://127.0.0.1:1', testCapabilities), /ECONNREFUSED|Failed to register client|fetch failed/, 'Should detect self-hosted mode and fail when DCR server is unreachable');
+    // Discovery replaces the underlying network error with a generic one so a failure
+    // cannot disclose internal topology; the rejection itself is the contract.
+    await assert.rejects(authenticator.ensureAuthenticated('http://127.0.0.1:1', testCapabilities), (error: Error) => error instanceof DiscoveryFetchError, 'Should detect self-hosted mode and fail when DCR server is unreachable');
   });
 
   it('should differentiate between self-hosted and external DCR modes', () => {
