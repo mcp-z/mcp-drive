@@ -1,7 +1,7 @@
+import { drive as driveApi } from '@googleapis/drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ReadResourceResult, ResourceConfig, ResourceModule, ServerContext } from '@mcp-z/server';
 import { ResourceTemplate } from '@mcp-z/server';
-import { google } from 'googleapis';
 import { googleAuth } from '../../lib/google-auth.ts';
 
 export default function createResource(): ResourceModule {
@@ -35,7 +35,7 @@ export default function createResource(): ResourceModule {
 
       // Safe type guard to access middleware-enriched extra
       const { logger, authContext } = extra as unknown as EnrichedExtra;
-      const drive = google.drive({ version: 'v3', auth: googleAuth(authContext.auth) });
+      const drive = driveApi({ version: 'v3', auth: googleAuth(authContext.auth) });
       const resp = await drive.files.get({
         fileId,
         fields: 'id,name,mimeType,size,modifiedTime,owners,webViewLink',

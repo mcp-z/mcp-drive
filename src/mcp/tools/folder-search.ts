@@ -3,9 +3,9 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
+import type { drive_v3 } from '@googleapis/drive';
+import { drive as driveApi } from '@googleapis/drive';
 import { type CallToolResult, createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, ProtocolError, ProtocolErrorCode, parseFields, toColumnarFormat } from '@mcp-z/server';
-import type { drive_v3 } from 'googleapis';
-import { google } from 'googleapis';
 import { z } from 'zod';
 import { googleAuth } from '../../lib/google-auth.ts';
 import { toDriveQuery } from '../../lib/query-builder.ts';
@@ -180,7 +180,7 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
       fields: fields || 'all',
     });
 
-    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
+    const drive = driveApi({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     const folderMimeType = 'application/vnd.google-apps.folder';
     let qStr: string;
