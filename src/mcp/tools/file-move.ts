@@ -3,9 +3,9 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
+import type { drive_v3 } from '@googleapis/drive';
+import { drive as driveApi } from '@googleapis/drive';
 import { type CallToolResult, ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
-import type { drive_v3 } from 'googleapis';
-import { google } from 'googleapis';
 import { z } from 'zod';
 import { googleAuth } from '../../lib/google-auth.ts';
 import type { Logger } from '../../types.ts';
@@ -262,7 +262,7 @@ async function handler({ fileIds, destinationFolderId, returnOldParents = true }
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
+    const drive = driveApi({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     let moved: MoveResult[] = [];
     let failed: FailedMove[] = [];

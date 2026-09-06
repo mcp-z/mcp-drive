@@ -1,10 +1,10 @@
+import { drive as driveApi } from '@googleapis/drive';
 import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import { promises as fs } from 'fs';
 import getPort from 'get-port';
-import { google } from 'googleapis';
 import { createServer, type Server } from 'http';
 import { join } from 'path';
 import type { Input, Output } from '../../../../src/mcp/tools/file-upload.ts';
@@ -74,7 +74,7 @@ describe('drive-file-upload tests', () => {
       } finally {
         // Cleanup: delete uploaded file and local fixture
         if (uploadedFileId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await drive.files.delete({ fileId: uploadedFileId, supportsAllDrives: true });
         }
         await fs.unlink(fixturePath);
@@ -108,7 +108,7 @@ describe('drive-file-upload tests', () => {
         }
       } finally {
         if (uploadedFileId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await drive.files.delete({ fileId: uploadedFileId, supportsAllDrives: true });
         }
         server.closeAllConnections();
@@ -138,7 +138,7 @@ describe('drive-file-upload tests', () => {
         }
       } finally {
         if (uploadedFileId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await drive.files.delete({ fileId: uploadedFileId, supportsAllDrives: true });
         }
         await fs.unlink(fixturePath);
@@ -148,7 +148,7 @@ describe('drive-file-upload tests', () => {
     it('uploads file with parent', async () => {
       const fixtureName = `file-upload-parent-${Date.now()}.txt`;
       const fixturePath = await writeFixture(fixtureName, fixtureContent);
-      const drive = google.drive({ version: 'v3', auth });
+      const drive = driveApi({ version: 'v3', auth });
       let parentFolderId: string | undefined;
       let uploadedFileId: string | undefined;
 
@@ -272,7 +272,7 @@ describe('drive-file-upload tests', () => {
         }
       } finally {
         if (uploadedFileId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await drive.files.delete({ fileId: uploadedFileId, supportsAllDrives: true });
         }
         await fs.unlink(fixturePath);

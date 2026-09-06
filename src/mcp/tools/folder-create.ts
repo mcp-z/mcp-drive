@@ -3,9 +3,9 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
+import { drive as driveApi } from '@googleapis/drive';
 import type { CallToolResult } from '@mcp-z/server';
 import { ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
-import { google } from 'googleapis';
 import { z } from 'zod';
 import { googleAuth } from '../../lib/google-auth.ts';
 
@@ -52,7 +52,7 @@ async function handler({ name: folderName, parentId }: Input, extra: EnrichedExt
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
+    const drive = driveApi({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     // Folder MIME type constant (consistent with folder-search.ts)
     const folderMimeType = 'application/vnd.google-apps.folder';

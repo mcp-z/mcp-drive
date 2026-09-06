@@ -3,9 +3,9 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
+import { drive as driveApi } from '@googleapis/drive';
 import type { CallToolResult } from '@mcp-z/server';
 import { ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
-import { google } from 'googleapis';
 import { z } from 'zod';
 import { getFileReadStream, guessMimeType } from '../../lib/file-streaming.ts';
 import { googleAuth } from '../../lib/google-auth.ts';
@@ -59,7 +59,7 @@ async function handler({ sourceUri, name, mimeType, parentId, description }: Inp
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
+    const drive = driveApi({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     // Stream source content directly from URI (no temp files)
     const source = await getFileReadStream(sourceUri);

@@ -1,8 +1,8 @@
+import { drive as driveApi } from '@googleapis/drive';
 import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
-import { google } from 'googleapis';
 import type { Input, Output } from '../../../../src/mcp/tools/folder-create.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
@@ -59,7 +59,7 @@ describe('drive-folder-create tests', () => {
       } finally {
         // Cleanup: delete created folder
         if (createdFolderId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await deleteTestFolder(drive, createdFolderId, logger);
         }
       }
@@ -70,7 +70,7 @@ describe('drive-folder-create tests', () => {
       let childFolderId: string | undefined;
 
       try {
-        const drive = google.drive({ version: 'v3', auth });
+        const drive = driveApi({ version: 'v3', auth });
 
         // Create parent folder first
         const parentName = `Test Parent ${Date.now()}`;
@@ -106,7 +106,7 @@ describe('drive-folder-create tests', () => {
         }
       } finally {
         // Cleanup: delete child first, then parent
-        const drive = google.drive({ version: 'v3', auth });
+        const drive = driveApi({ version: 'v3', auth });
         if (childFolderId) {
           await deleteTestFolder(drive, childFolderId, logger);
         }
@@ -152,7 +152,7 @@ describe('drive-folder-create tests', () => {
       } finally {
         // Cleanup: delete created folder
         if (createdFolderId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await deleteTestFolder(drive, createdFolderId, logger);
         }
       }
@@ -184,7 +184,7 @@ describe('drive-folder-create tests', () => {
         }
       } finally {
         if (createdFolderId) {
-          const drive = google.drive({ version: 'v3', auth });
+          const drive = driveApi({ version: 'v3', auth });
           await deleteTestFolder(drive, createdFolderId, logger);
         }
       }
