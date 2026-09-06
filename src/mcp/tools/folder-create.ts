@@ -7,6 +7,7 @@ import type { CallToolResult } from '@mcp-z/server';
 import { ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
+import { googleAuth } from '../../lib/google-auth.ts';
 
 const inputSchema = z.object({
   name: z.string().trim().min(1).describe('Name for the new folder'),
@@ -51,7 +52,7 @@ async function handler({ name: folderName, parentId }: Input, extra: EnrichedExt
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     // Folder MIME type constant (consistent with folder-search.ts)
     const folderMimeType = 'application/vnd.google-apps.folder';

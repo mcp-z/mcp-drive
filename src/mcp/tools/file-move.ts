@@ -7,6 +7,7 @@ import { type CallToolResult, ProtocolError, ProtocolErrorCode } from '@mcp-z/se
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
+import { googleAuth } from '../../lib/google-auth.ts';
 import type { Logger } from '../../types.ts';
 
 // Type guard for Google Drive API errors
@@ -261,7 +262,7 @@ async function handler({ fileIds, destinationFolderId, returnOldParents = true }
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     let moved: MoveResult[] = [];
     let failed: FailedMove[] = [];

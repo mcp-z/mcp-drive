@@ -6,6 +6,7 @@ const { AuthRequiredBranchSchema } = schemas;
 import { type CallToolResult, ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
+import { googleAuth } from '../../lib/google-auth.ts';
 
 const MAX_BATCH_SIZE = 1000;
 
@@ -53,7 +54,7 @@ async function handler({ ids }: Input, extra: EnrichedExtra): Promise<CallToolRe
   logger.info('drive.file.moveToTrash called', { count: ids.length });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     const results = await Promise.allSettled(
       ids.map(async (id) => {
