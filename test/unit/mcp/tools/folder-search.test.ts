@@ -1,7 +1,7 @@
 import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
-import { McpError } from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError } from '@mcp-z/server';
 import assert from 'assert';
 import type { Input, Output } from '../../../../src/mcp/tools/folder-search.ts';
 import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../lib/assertions.ts';
@@ -39,7 +39,7 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'folder search results');
       if (branch.items.length > 0) {
         const first = branch.items[0];
@@ -63,7 +63,7 @@ describe('drive-folder-search comprehensive tests', () => {
         createExtra()
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertArraysShape(branch, 'folder search arrays shape');
       assert.ok(Array.isArray(branch.columns), 'columns should be array');
       assert.ok(Array.isArray(branch.rows), 'rows should be array');
@@ -86,7 +86,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'folder-only mime type');
       if (branch.items.length > 0) {
         for (const item of branch.items) {
@@ -109,7 +109,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'query input formats');
     }
 
@@ -143,7 +143,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'resolvePaths=false');
       if (branch.items.length > 0) {
         const first = branch.items[0];
@@ -163,7 +163,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'resolvePaths=true');
       if (branch.items.length > 0) {
         const first = branch.items[0];
@@ -186,7 +186,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'path format');
       if (branch.items.length > 0) {
         for (const item of branch.items) {
@@ -212,7 +212,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'minimal folder data');
       assert.ok(branch.items !== undefined, 'should have items array');
       assert.ok(Array.isArray(branch.items), 'items should be array');
@@ -243,7 +243,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'full folder data');
       assert.ok(branch.items !== undefined, 'should have folders array');
       assert.ok(Array.isArray(branch.items), 'folders should be array');
@@ -263,7 +263,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'first page without pageToken');
       assert.ok(branch.items !== undefined, 'should have folders array');
     });
@@ -280,7 +280,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const firstBranch = firstPage.structuredContent?.result as Output | undefined;
+      const firstBranch = (firstPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(firstBranch, 'pagination first page');
       if (firstBranch.nextPageToken) {
         const secondPage = await folderSearchHandler(
@@ -294,7 +294,7 @@ describe('drive-folder-search comprehensive tests', () => {
           },
           createExtra()
         );
-        const secondBranch = secondPage.structuredContent?.result as Output | undefined;
+        const secondBranch = (secondPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(secondBranch, 'pagination second page');
       }
     });
@@ -313,7 +313,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'folder name search');
     });
 
@@ -329,7 +329,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'parent folder queries');
     });
 
@@ -345,7 +345,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'trashed folder filter');
       if (branch.items.length > 0) {
         // All items should be non-trashed folders (implicit in query)
@@ -370,7 +370,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'required fields');
       if (branch.items.length > 0) {
         const first = branch.items[0];
@@ -393,7 +393,7 @@ describe('drive-folder-search comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'optional fields');
       if (branch.items.length > 0) {
         const first = branch.items[0];
@@ -425,7 +425,7 @@ describe('drive-folder-search comprehensive tests', () => {
           },
           createExtra()
         ),
-        (error) => error instanceof McpError
+        (error) => error instanceof ProtocolError
       );
     });
 
@@ -442,7 +442,7 @@ describe('drive-folder-search comprehensive tests', () => {
           },
           createExtra()
         ),
-        (error) => error instanceof McpError
+        (error) => error instanceof ProtocolError
       );
     });
   });

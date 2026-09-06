@@ -3,8 +3,7 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
-import { createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, parseFields, toColumnarFormat } from '@mcp-z/server';
-import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { type CallToolResult, createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, ProtocolError, ProtocolErrorCode, parseFields, toColumnarFormat } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
 import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema } from '../../schemas/index.ts';
@@ -237,8 +236,8 @@ async function handler({ folderId, pageSize = 50, pageToken, fields, shape = 'ar
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.folder.contents error', { error: message });
 
-    // Throw McpError
-    throw new McpError(ErrorCode.InternalError, `Error listing folder contents: ${message}`, {
+    // Throw ProtocolError
+    throw new ProtocolError(ProtocolErrorCode.InternalError, `Error listing folder contents: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });
   }

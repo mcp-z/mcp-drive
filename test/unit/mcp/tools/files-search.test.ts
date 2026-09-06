@@ -1,7 +1,7 @@
 import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
-import { McpError } from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError } from '@mcp-z/server';
 import assert from 'assert';
 import type { Input, Output } from '../../../../src/mcp/tools/files-search.ts';
 import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../lib/assertions.ts';
@@ -38,7 +38,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'basic search results');
       if (Array.isArray(branch.items) && branch.items.length > 0) {
         const first = branch.items[0];
@@ -58,7 +58,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
       assert.ok(res?.structuredContent, 'search missing structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertArraysShape(branch, 'arrays shape search');
       assert.ok(Array.isArray(branch.columns), 'columns should be array');
       assert.ok(Array.isArray(branch.rows), 'rows should be array');
@@ -84,7 +84,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'query input format');
     }
 
@@ -118,7 +118,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'first page without pageToken');
       // Verify we have files array in objects shape
       assert.ok(Array.isArray(branch.items), 'files should be array');
@@ -141,7 +141,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const firstBranch = firstPage.structuredContent?.result as Output | undefined;
+      const firstBranch = (firstPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(firstBranch, 'first page with pageToken');
       if (firstBranch.nextPageToken) {
         // Use pageToken for second page
@@ -156,7 +156,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           createExtra()
         );
 
-        const secondBranch = secondPage.structuredContent?.result as Output | undefined;
+        const secondBranch = (secondPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(secondBranch, 'second page');
         // Check for files array in success branch
         assert.ok(Array.isArray(secondBranch.items), 'second page items should be array');
@@ -175,7 +175,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'last page handling');
       const items = branch.items;
       // If we get results but no nextPageToken, this is the last page
@@ -198,7 +198,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'empty results handling');
       const items = branch.items;
       assert.equal(items.length, 0, 'should return empty results for non-matching query');
@@ -217,7 +217,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'single page results');
       const items = branch.items;
       assert.ok(Array.isArray(items), 'items should be array');
@@ -245,7 +245,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           },
           createExtra()
         ),
-        (error) => error instanceof McpError
+        (error) => error instanceof ProtocolError
       );
     });
 
@@ -264,7 +264,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           },
           createExtra()
         ),
-        (error) => error instanceof McpError
+        (error) => error instanceof ProtocolError
       );
     });
 
@@ -280,7 +280,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'maximum page size');
       const items = branch.items;
       assert.ok(items.length <= 1000, 'should respect maximum page size');
@@ -298,7 +298,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'large page size clamping');
       const items = branch.items;
       // Should be clamped to maximum allowed (1000)
@@ -317,7 +317,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       // Should either use default or return error
       assertObjectsShape(branch, 'zero page size');
     });
@@ -334,7 +334,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       // Should either use default or return error
       assertObjectsShape(branch, 'negative page size');
     });
@@ -361,7 +361,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       // All requests should either succeed or handle quota limits gracefully
       for (const result of results) {
         if (result.status === 'fulfilled') {
-          const branch: Output | undefined = result.value?.structuredContent?.result as Output | undefined;
+          const branch: Output | undefined = (result.value?.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
           assertSuccess(branch, 'quota limits');
         }
       }
@@ -383,7 +383,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           createExtra()
         );
 
-        const branch = result.structuredContent?.result as Output | undefined;
+        const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertSuccess(branch, `Drive query: ${query}`);
       }
     });
@@ -403,7 +403,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'complex Drive queries');
     });
   });
@@ -421,7 +421,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'auth requirement');
     });
 
@@ -438,7 +438,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           },
           createExtra()
         ),
-        (error) => error instanceof McpError
+        (error) => error instanceof ProtocolError
       );
     });
 
@@ -455,7 +455,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           },
           createExtra()
         ),
-        (error) => error instanceof McpError
+        (error) => error instanceof ProtocolError
       );
     });
   });
@@ -477,7 +477,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
             },
             createExtra()
           ),
-          (error) => error instanceof McpError
+          (error) => error instanceof ProtocolError
         );
       }
     });
@@ -498,7 +498,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
             },
             createExtra()
           ),
-          (error) => error instanceof McpError
+          (error) => error instanceof ProtocolError
         );
       }
     });
@@ -519,10 +519,10 @@ describe('drive-file-search comprehensive pagination tests', () => {
           },
           createExtra()
         );
-        const queryBranch = queryResult.structuredContent?.result as Output | undefined;
+        const queryBranch = (queryResult.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(queryBranch, 'very long query');
       } catch (error) {
-        assert.ok(error instanceof McpError, 'should throw McpError for very long query');
+        assert.ok(error instanceof ProtocolError, 'should throw ProtocolError for very long query');
       }
 
       try {
@@ -536,10 +536,10 @@ describe('drive-file-search comprehensive pagination tests', () => {
           },
           createExtra()
         );
-        const tokenBranch = tokenResult.structuredContent?.result as Output | undefined;
+        const tokenBranch = (tokenResult.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(tokenBranch, 'very long token');
       } catch (error) {
-        assert.ok(error instanceof McpError, 'should throw McpError for very long token');
+        assert.ok(error instanceof ProtocolError, 'should throw ProtocolError for very long token');
       }
     });
   });
@@ -560,7 +560,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       );
 
       const elapsedTime = Date.now() - startTime;
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'large dataset performance');
       const items = branch.items;
@@ -609,7 +609,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
       // All requests should either succeed or fail gracefully
       for (const result of results) {
         if (result.status === 'fulfilled') {
-          const branch: Output | undefined = result.value?.structuredContent?.result as Output | undefined;
+          const branch: Output | undefined = (result.value?.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
           assertSuccess(branch, 'concurrent requests');
         }
       }
@@ -627,7 +627,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'memory usage estimation');
       const items = branch.items;
       if (items.length > 0) {
@@ -654,7 +654,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'field mapping consistency');
       // When includeData is true, we get items with full metadata
       const items = branch.items || [];
@@ -696,7 +696,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'owners field formatting');
       // When includeData is true, we get items with full metadata
       const items = branch.items || [];
@@ -728,7 +728,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(branch, 'date format consistency');
       // When includeData is true, we get items with full metadata
       const items = branch.items || [];
@@ -763,7 +763,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           createExtra()
         );
 
-        const branch = result.structuredContent?.result as Output | undefined;
+        const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(branch, 'complete pagination workflow page');
         // Collect files from this page
         const items = branch.items || [];
@@ -805,7 +805,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const firstBranch = firstPage.structuredContent?.result as Output | undefined;
+      const firstBranch = (firstPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(firstBranch, 'pagination state recovery first page');
       if (!firstBranch.nextPageToken) {
         return;
@@ -822,7 +822,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
         createExtra()
       );
 
-      const recoveredBranch = recoveredPage.structuredContent?.result as Output | undefined;
+      const recoveredBranch = (recoveredPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertObjectsShape(recoveredBranch, 'pagination state recovery recovered page');
 
       // When includeData is false, we get fileIds instead of items
@@ -854,7 +854,7 @@ describe('drive-file-search comprehensive pagination tests', () => {
           createExtra()
         );
 
-        const branch = result.structuredContent?.result as Output | undefined;
+        const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(branch, `cross-query pagination: ${query}`);
         // When using objects shape, we get files array
         assert.ok(Array.isArray(branch.items), `files should be array for query: ${query}`);

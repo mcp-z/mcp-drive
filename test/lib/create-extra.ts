@@ -1,5 +1,5 @@
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@mcp-z/server';
 import pino from 'pino';
 
 /**
@@ -29,5 +29,5 @@ export function createExtra(): EnrichedExtra {
       accountId: 'test-account',
     },
     logger: pino({ level: 'silent' }),
-  } as EnrichedExtra;
+  } as unknown as EnrichedExtra;
 }

@@ -3,7 +3,7 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
-import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { type CallToolResult, ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
 
@@ -114,8 +114,8 @@ async function handler({ ids }: Input, extra: EnrichedExtra): Promise<CallToolRe
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.file.moveToTrash error', { error: message });
 
-    // Throw McpError
-    throw new McpError(ErrorCode.InternalError, `Error moving files to trash: ${message}`, {
+    // Throw ProtocolError
+    throw new ProtocolError(ProtocolErrorCode.InternalError, `Error moving files to trash: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });
   }

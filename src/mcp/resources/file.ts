@@ -1,11 +1,9 @@
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
-import type { ResourceConfig, ResourceModule } from '@mcp-z/server';
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type { ReadResourceResult, ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { ReadResourceResult, ResourceConfig, ResourceModule, ServerContext } from '@mcp-z/server';
+import { ResourceTemplate } from '@mcp-z/server';
 import { google } from 'googleapis';
 
-export default function createResource() {
+export default function createResource(): ResourceModule {
   const template = new ResourceTemplate('drive://files/{fileId}', {
     list: undefined,
   });
@@ -14,7 +12,7 @@ export default function createResource() {
     mimeType: 'application/json',
   };
 
-  const handler = async (uri: URL, variables: Record<string, string | string[]>, extra: RequestHandlerExtra<ServerRequest, ServerNotification>): Promise<ReadResourceResult> => {
+  const handler = async (uri: URL, variables: Record<string, string | string[]>, extra: ServerContext): Promise<ReadResourceResult> => {
     // Extract fileId and handle both string and string[] cases
     const fileId = Array.isArray(variables.fileId) ? variables.fileId[0] : variables.fileId;
 

@@ -3,8 +3,8 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@mcp-z/server';
+import { ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
 import { getFileReadStream, guessMimeType } from '../../lib/file-streaming.ts';
@@ -151,8 +151,8 @@ async function handler({ sourceUri, name, mimeType, parentId, description }: Inp
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.file.upload error', { error: message });
 
-    // Throw McpError for proper MCP error handling
-    throw new McpError(ErrorCode.InternalError, `Error uploading file: ${message}`, {
+    // Throw ProtocolError for proper MCP error handling
+    throw new ProtocolError(ProtocolErrorCode.InternalError, `Error uploading file: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });
   }

@@ -59,7 +59,7 @@ describe('drive-file-upload tests', () => {
 
         // Use structuredContent for typed access
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');
@@ -95,7 +95,7 @@ describe('drive-file-upload tests', () => {
         const res = await fileUploadHandler({ sourceUri: `http://127.0.0.1:${port}/report.txt` }, createExtra());
 
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');
@@ -126,7 +126,7 @@ describe('drive-file-upload tests', () => {
         const res = await fileUploadHandler({ sourceUri: `file://${fixturePath}`, name: customName, mimeType: 'application/octet-stream' }, createExtra());
 
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');
@@ -167,7 +167,7 @@ describe('drive-file-upload tests', () => {
         const res = await fileUploadHandler({ sourceUri: `file://${fixturePath}`, parentId: parentFolderId }, createExtra());
 
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');
@@ -194,7 +194,7 @@ describe('drive-file-upload tests', () => {
     it('handles invalid URI scheme', async () => {
       try {
         await fileUploadHandler({ sourceUri: 'ftp://example.com/file.txt' }, createExtra());
-        assert.fail('should have thrown McpError for invalid URI scheme');
+        assert.fail('should have thrown ProtocolError for invalid URI scheme');
       } catch (error) {
         assert.ok(error instanceof Error, 'should throw an error');
         assert.ok(error.message.includes('Error uploading file'), 'error message should mention file upload');
@@ -205,7 +205,7 @@ describe('drive-file-upload tests', () => {
       const missingPath = join('.tmp', `does-not-exist-${Date.now()}.txt`);
       try {
         await fileUploadHandler({ sourceUri: `file://${missingPath}` }, createExtra());
-        assert.fail('should have thrown McpError for missing local file');
+        assert.fail('should have thrown ProtocolError for missing local file');
       } catch (error) {
         assert.ok(error instanceof Error, 'should throw an error');
         assert.ok(error.message.includes('Error uploading file'), 'error message should mention file upload');
@@ -218,7 +218,7 @@ describe('drive-file-upload tests', () => {
 
       try {
         await fileUploadHandler({ sourceUri: `file://${fixturePath}`, parentId: 'invalid-folder-id-12345' }, createExtra());
-        assert.fail('should have thrown McpError for invalid parent');
+        assert.fail('should have thrown ProtocolError for invalid parent');
       } catch (error) {
         assert.ok(error instanceof Error, 'should throw an error');
         assert.ok(error.message.includes('Error uploading file'), 'error message should mention file upload');
@@ -237,7 +237,7 @@ describe('drive-file-upload tests', () => {
 
       try {
         await fileUploadHandler({ sourceUri: `http://127.0.0.1:${port}/missing.txt` }, createExtra());
-        assert.fail('should have thrown McpError for HTTP 404 source');
+        assert.fail('should have thrown ProtocolError for HTTP 404 source');
       } catch (error) {
         assert.ok(error instanceof Error, 'should throw an error');
         assert.ok(error.message.includes('Error uploading file'), 'error message should mention file upload');
@@ -258,7 +258,7 @@ describe('drive-file-upload tests', () => {
         const res = await fileUploadHandler({ sourceUri: `file://${fixturePath}` }, createExtra());
 
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');
