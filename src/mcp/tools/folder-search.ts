@@ -7,6 +7,7 @@ import { type CallToolResult, createFieldsSchema, createPaginationSchema, create
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
+import { googleAuth } from '../../lib/google-auth.ts';
 import { toDriveQuery } from '../../lib/query-builder.ts';
 import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQueryParameterSchema, parseDriveQueryParameter } from '../../schemas/index.ts';
 import type { Logger } from '../../types.ts';
@@ -179,7 +180,7 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
       fields: fields || 'all',
     });
 
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     const folderMimeType = 'application/vnd.google-apps.folder';
     let qStr: string;

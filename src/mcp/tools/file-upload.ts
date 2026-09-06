@@ -8,6 +8,7 @@ import { ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
 import { getFileReadStream, guessMimeType } from '../../lib/file-streaming.ts';
+import { googleAuth } from '../../lib/google-auth.ts';
 
 const inputSchema = z.object({
   sourceUri: z.string().trim().min(1).describe('File URI to upload (file://, http://, https://)'),
@@ -58,7 +59,7 @@ async function handler({ sourceUri, name, mimeType, parentId, description }: Inp
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     // Stream source content directly from URI (no temp files)
     const source = await getFileReadStream(sourceUri);

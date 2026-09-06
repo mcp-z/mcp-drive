@@ -6,6 +6,7 @@ const { AuthRequiredBranchSchema } = schemas;
 import { type CallToolResult, createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, ProtocolError, ProtocolErrorCode, parseFields, toColumnarFormat } from '@mcp-z/server';
 import { type drive_v3, google } from 'googleapis';
 import { z } from 'zod';
+import { googleAuth } from '../../lib/google-auth.ts';
 import { toDriveQuery } from '../../lib/query-builder.ts';
 import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema, DriveQueryParameterSchema, parseDriveQueryParameter } from '../../schemas/index.ts';
 
@@ -81,7 +82,7 @@ async function handler({ query, pageSize = 50, pageToken, fields, shape = 'array
       fields: fields || 'all',
     });
 
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     // Handle query parameter
     let qStr: string;

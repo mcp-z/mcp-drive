@@ -6,6 +6,7 @@ const { AuthRequiredBranchSchema } = schemas;
 import { type CallToolResult, createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, ProtocolError, ProtocolErrorCode, parseFields, toColumnarFormat } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
+import { googleAuth } from '../../lib/google-auth.ts';
 import { DRIVE_FILE_COMMON_PATTERNS, DRIVE_FILE_FIELD_DESCRIPTIONS, DRIVE_FILE_FIELDS, type DriveFile, DriveFileSchema } from '../../schemas/index.ts';
 
 const inputSchema = z.object({
@@ -98,7 +99,7 @@ async function handler({ folderId, pageSize = 50, pageToken, fields, shape = 'ar
   });
 
   try {
-    const drive = google.drive({ version: 'v3', auth: extra.authContext.auth });
+    const drive = google.drive({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
     const qStr = `'${folderId}' in parents and trashed = false`;
 
