@@ -36,7 +36,7 @@ describe('folder-contents tool', () => {
       );
 
       assert.ok(res?.structuredContent, 'should have structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'root folder contents');
       assert.ok(Array.isArray(branch.items), 'items should be an array');
@@ -56,7 +56,7 @@ describe('folder-contents tool', () => {
       );
 
       assert.ok(res?.structuredContent, 'should have structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertArraysShape(branch, 'arrays shape');
       assert.ok(Array.isArray(branch.columns), 'columns should be array');
@@ -79,7 +79,7 @@ describe('folder-contents tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'requested fields only');
       if (branch.items.length > 0) {
@@ -109,7 +109,7 @@ describe('folder-contents tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'mimeType field');
       if (branch.items.length > 0) {
@@ -131,7 +131,7 @@ describe('folder-contents tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'parents field');
       if (branch.items.length > 0) {
@@ -160,7 +160,7 @@ describe('folder-contents tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'pageSize limit');
       assert.ok(branch.items.length <= 3, 'should return at most pageSize items');
@@ -177,7 +177,7 @@ describe('folder-contents tool', () => {
         createExtra()
       );
 
-      const firstBranch = firstPage.structuredContent?.result as Output | undefined;
+      const firstBranch = (firstPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(firstBranch, 'first page for pagination');
       if (firstBranch.nextPageToken) {
@@ -192,7 +192,7 @@ describe('folder-contents tool', () => {
           createExtra()
         );
 
-        const secondBranch = secondPage.structuredContent?.result as Output | undefined;
+        const secondBranch = (secondPage.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assertObjectsShape(secondBranch, 'second page for pagination');
       }
     });
@@ -210,7 +210,7 @@ describe('folder-contents tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertObjectsShape(branch, 'folder ordering');
       if (branch.items.length > 1) {

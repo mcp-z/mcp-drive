@@ -45,7 +45,7 @@ describe('drive-folder-create tests', () => {
 
         // Use structuredContent for typed access
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         // Check discriminated union type
@@ -89,7 +89,7 @@ describe('drive-folder-create tests', () => {
 
         // Use structuredContent for typed access
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');
@@ -121,10 +121,10 @@ describe('drive-folder-create tests', () => {
     it('handles invalid parent ID', async () => {
       const testFolderName = `Test Invalid Parent ${Date.now()}`;
 
-      // Should throw McpError for invalid parent
+      // Should throw ProtocolError for invalid parent
       try {
         await folderCreateHandler({ name: testFolderName, parentId: 'invalid-folder-id-12345' }, createExtra());
-        assert.fail('should have thrown McpError for invalid parent');
+        assert.fail('should have thrown ProtocolError for invalid parent');
       } catch (error) {
         assert.ok(error instanceof Error, 'should throw an error');
         assert.ok(error.message.includes('Error creating folder'), 'error message should mention folder creation');
@@ -140,7 +140,7 @@ describe('drive-folder-create tests', () => {
 
         // Use structuredContent for typed access
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         // Drive successfully creates folder with whitespace (likely trimmed)
@@ -169,7 +169,7 @@ describe('drive-folder-create tests', () => {
 
         // Use structuredContent for typed access
         assert.ok(res?.structuredContent, 'response missing structuredContent');
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         if (!branch) throw new Error('Expected branch');
 
         assert.equal(branch.type, 'success', 'should have success type');

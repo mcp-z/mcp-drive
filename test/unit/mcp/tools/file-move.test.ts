@@ -39,7 +39,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       // Should handle gracefully - either error or success with 0 moved
       assertSuccess(branch, 'single file ID');
     });
@@ -54,7 +54,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'array of file IDs');
     });
 
@@ -67,7 +67,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'destination folder validation');
     });
 
@@ -89,8 +89,8 @@ describe('drive-file-move comprehensive tests', () => {
         createExtra()
       );
 
-      const branch1 = resultWithOldParents.structuredContent?.result as Output | undefined;
-      const branch2 = resultWithoutOldParents.structuredContent?.result as Output | undefined;
+      const branch1 = (resultWithOldParents.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
+      const branch2 = (resultWithoutOldParents.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch1, 'returnOldParents=true');
       assertSuccess(branch2, 'returnOldParents=false');
@@ -107,7 +107,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'success response structure');
       assert.ok('moved' in branch, 'should have moved array');
@@ -127,7 +127,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'failed array inclusion');
       if (branch.totalFailed > 0) {
@@ -146,7 +146,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'moved item fields');
       if (branch.moved.length > 0) {
@@ -169,7 +169,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'failed item fields');
       if (branch.failed && branch.failed.length > 0) {
@@ -187,14 +187,14 @@ describe('drive-file-move comprehensive tests', () => {
       // Test with exactly 100 files (max allowed)
       const fileIds = Array.from({ length: 100 }, (_, i) => `file-${i}`);
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'batch of 100 files');
     });
 
     it('totalRequested matches input count', async () => {
       const fileIds = ['file-1', 'file-2', 'file-3'];
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'totalRequested matches input count');
       assert.equal(branch.totalRequested, fileIds.length, 'totalRequested should match input file count');
@@ -203,7 +203,7 @@ describe('drive-file-move comprehensive tests', () => {
     it('totalMoved + totalFailed equals totalRequested', async () => {
       const fileIds = ['file-1', 'file-2', 'file-3'];
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'totalMoved + totalFailed');
       const sum = branch.totalMoved + branch.totalFailed;
@@ -221,7 +221,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'oldParents populated');
       if (branch.moved.length > 0) {
@@ -241,7 +241,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'oldParents empty when returnOldParents=false');
       if (branch.moved.length > 0) {
@@ -262,7 +262,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'newParent matches destination');
       if (branch.moved.length > 0) {
@@ -283,7 +283,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'non-existent file handling');
     });
 
@@ -296,7 +296,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'non-existent destination handling');
     });
 
@@ -304,7 +304,7 @@ describe('drive-file-move comprehensive tests', () => {
       // Mix of potentially valid and invalid IDs
       const fileIds = ['nonexistent-1', 'nonexistent-2', 'nonexistent-3'];
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'partial failures in batch');
       // Should track both successes and failures
@@ -321,7 +321,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'error details for failures');
       if (branch.failed && branch.failed.length > 0) {
@@ -343,7 +343,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'single file mode detection');
       assert.equal(branch.totalRequested, 1, 'single file should have totalRequested=1');
@@ -352,7 +352,7 @@ describe('drive-file-move comprehensive tests', () => {
     it('detects batch mode correctly', async () => {
       const fileIds = ['file-1', 'file-2'];
       const result = await fileMoveHandler({ fileIds, destinationFolderId: 'root', returnOldParents: true }, createExtra());
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'batch mode detection');
       assert.equal(branch.totalRequested, fileIds.length, 'batch should have totalRequested matching array length');
@@ -369,7 +369,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'move to root');
     });
 
@@ -382,7 +382,7 @@ describe('drive-file-move comprehensive tests', () => {
         },
         createExtra()
       );
-      const branch = result.structuredContent?.result as Output | undefined;
+      const branch = (result.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'webViewLink presence');
       if (branch.moved.length > 0) {

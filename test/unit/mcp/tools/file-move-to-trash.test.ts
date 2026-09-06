@@ -24,7 +24,7 @@ describe('drive-file-move-to-trash', () => {
       const res = await fileMoveToTrashHandler({ ids: ['nonexistent-file-id'] }, createExtra());
 
       assert.ok(res?.structuredContent, 'missing structuredContent');
-      const branch = res.structuredContent.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown })?.result as Output | undefined;
 
       // Should have success type with failure details or error type
       assertSuccess(branch, 'move-to-trash structured response');
@@ -50,7 +50,7 @@ describe('drive-file-move-to-trash', () => {
     it('handles single file ID', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-file-id'] }, createExtra());
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'single file ID');
       assert.equal(branch.totalCount, 1, 'should process 1 item');
     });
@@ -58,7 +58,7 @@ describe('drive-file-move-to-trash', () => {
     it('handles multiple file IDs', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-file-1', 'test-file-2', 'test-file-3'] }, createExtra());
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'multiple file IDs');
       assert.equal(branch.totalCount, 3, 'should process 3 items');
     });
@@ -70,7 +70,7 @@ describe('drive-file-move-to-trash', () => {
       // For now we verify the schema allows omission
       const res = await fileMoveToTrashHandler({ ids: ['test-id'] }, createExtra());
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'omits failures array');
       // If all items succeeded, failures should be undefined
       if (branch.successCount === branch.totalCount) {
@@ -81,7 +81,7 @@ describe('drive-file-move-to-trash', () => {
     it('includes failures array only when items fail', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['invalid-id-1', 'invalid-id-2'] }, createExtra());
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'includes failures array');
       // With invalid IDs, we expect failures
       if (branch.failureCount > 0) {
@@ -96,7 +96,7 @@ describe('drive-file-move-to-trash', () => {
       const maxBatch = Array.from({ length: 1000 }, (_, i) => `file-${i}`);
 
       const res = await fileMoveToTrashHandler({ ids: maxBatch }, createExtra());
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       assertSuccess(branch, 'max batch size');
       assert.equal(branch.totalCount, 1000, 'should process all 1000 items');
@@ -107,14 +107,14 @@ describe('drive-file-move-to-trash', () => {
     it('handles service errors gracefully', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['malformed|||id'] }, createExtra());
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'malformed IDs');
     });
 
     it('requires auth to succeed', async () => {
       const res = await fileMoveToTrashHandler({ ids: ['test-id'] }, createExtra());
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
       assertSuccess(branch, 'auth requirement');
     });
   });

@@ -32,7 +32,7 @@ describe('folder-path tool', () => {
       );
 
       assert.ok(res?.structuredContent, 'should have structuredContent');
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       if (branch?.type !== 'success') {
         assert.fail(`expected success branch, got ${branch?.type}`);
@@ -54,7 +54,7 @@ describe('folder-path tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       if (branch?.type !== 'success') {
         assert.fail(`expected success branch, got ${branch?.type}`);
@@ -70,7 +70,7 @@ describe('folder-path tool', () => {
         createExtra()
       );
 
-      const branch = res.structuredContent?.result as Output | undefined;
+      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
 
       if (branch?.type !== 'success') {
         assert.fail(`expected success branch, got ${branch?.type}`);
@@ -93,11 +93,11 @@ describe('folder-path tool', () => {
           },
           createExtra()
         );
-        const branch = res.structuredContent?.result as Output | undefined;
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
         assert.ok(branch, 'expected structured result');
         assert.equal(branch.type, 'success', `expected success branch, got ${branch?.type}`);
       } catch (error) {
-        // McpError is expected for non-existent folders
+        // ProtocolError is expected for non-existent folders
         assert.ok(error, 'should throw an error for non-existent folder');
       }
     });

@@ -26,6 +26,9 @@ describe('DCR Self-Hosted Integration', () => {
     // Create a scenario with definitely unreachable server
     const testCapabilities: AuthCapabilities = {
       supportsDcr: true,
+      // Credentials are keyed by issuer (SEP-2352), so capabilities without one fail
+      // before any request; this fixture needs it to reach the unreachable-server path.
+      issuer: 'http://127.0.0.1:1',
       registrationEndpoint: 'http://127.0.0.1:1/oauth/register', // Port 1 should be unused
       authorizationEndpoint: 'http://127.0.0.1:1/oauth/authorize',
       tokenEndpoint: 'http://127.0.0.1:1/oauth/token',

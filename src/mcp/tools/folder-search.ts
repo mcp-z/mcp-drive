@@ -3,8 +3,7 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
-import { createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, parseFields, toColumnarFormat } from '@mcp-z/server';
-import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { type CallToolResult, createFieldsSchema, createPaginationSchema, createShapeSchema, filterFields, ProtocolError, ProtocolErrorCode, parseFields, toColumnarFormat } from '@mcp-z/server';
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
@@ -342,8 +341,8 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.folder.search error', { error: message });
 
-    // Throw McpError for all errors so callers can see Drive validation details
-    throw new McpError(ErrorCode.InternalError, `Error searching folders: ${message}`, {
+    // Throw ProtocolError for all errors so callers can see Drive validation details
+    throw new ProtocolError(ProtocolErrorCode.InternalError, `Error searching folders: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });
   }

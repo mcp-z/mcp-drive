@@ -3,7 +3,7 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
-import { type CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { type CallToolResult, ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import type { drive_v3 } from 'googleapis';
 import { google } from 'googleapis';
 import { z } from 'zod';
@@ -312,8 +312,8 @@ async function handler({ fileIds, destinationFolderId, returnOldParents = true }
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.file.move error', { error: message });
 
-    // Throw McpError
-    throw new McpError(ErrorCode.InternalError, `Error moving files: ${message}`, {
+    // Throw ProtocolError
+    throw new ProtocolError(ProtocolErrorCode.InternalError, `Error moving files: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });
   }

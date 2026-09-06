@@ -3,8 +3,8 @@ import { schemas } from '@mcp-z/oauth-google';
 
 const { AuthRequiredBranchSchema } = schemas;
 
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@mcp-z/server';
+import { ProtocolError, ProtocolErrorCode } from '@mcp-z/server';
 import { google } from 'googleapis';
 import { z } from 'zod';
 
@@ -133,8 +133,8 @@ async function handler({ name: folderName, parentId }: Input, extra: EnrichedExt
     const message = error instanceof Error ? error.message : String(error);
     logger.error('drive.folder.create error', { error: message });
 
-    // Throw McpError for proper MCP error handling
-    throw new McpError(ErrorCode.InternalError, `Error creating folder: ${message}`, {
+    // Throw ProtocolError for proper MCP error handling
+    throw new ProtocolError(ProtocolErrorCode.InternalError, `Error creating folder: ${message}`, {
       stack: error instanceof Error ? error.stack : undefined,
     });
   }
