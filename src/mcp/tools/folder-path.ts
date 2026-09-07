@@ -76,6 +76,7 @@ async function resolveFolderPath(drive: drive_v3.Drive, folderId: string, logger
       const response = await drive.files.get({
         fileId: currentId,
         fields: 'id,name,parents',
+        supportsAllDrives: true,
       });
 
       const id = response.data.id as string;

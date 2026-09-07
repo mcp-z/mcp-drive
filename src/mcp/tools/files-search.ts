@@ -103,10 +103,18 @@ async function handler({ query, pageSize = 50, pageToken, fields, shape = 'array
       fields: string;
       orderBy: string;
       pageToken?: string;
+      corpora: string;
+      supportsAllDrives: boolean;
+      includeItemsFromAllDrives: boolean;
     } = {
       pageSize: validPageSize,
       fields: 'files(id,name,mimeType,webViewLink,modifiedTime,parents,shared,starred,owners),nextPageToken',
       orderBy: 'modifiedTime desc',
+      // All three are load-bearing for shared drives: the default `user` corpus omits
+      // them, and Drive rejects an `allDrives` corpus unless both flags are set too.
+      corpora: 'allDrives',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     };
     if (qStr.trim().length > 0) {
       listOptions.q = qStr;
@@ -138,6 +146,7 @@ async function handler({ query, pageSize = 50, pageToken, fields, shape = 'array
           const parentRes = await drive.files.get({
             fileId: parentId,
             fields: 'id,name',
+            supportsAllDrives: true,
           });
           const parentName = (parentRes.data.name as string | undefined) || parentId;
           parentNameMap.set(parentId, parentName);

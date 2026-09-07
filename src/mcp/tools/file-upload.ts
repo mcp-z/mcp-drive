@@ -102,6 +102,7 @@ async function handler({ sourceUri, name, mimeType, parentId, description }: Inp
           const parentResponse = await drive.files.get({
             fileId: actualParentId,
             fields: 'name',
+            supportsAllDrives: true,
           });
           parentName = (parentResponse.data.name as string | undefined) || actualParentId;
         } catch (e) {

@@ -7,7 +7,7 @@ import type { Logger } from '../../src/types.ts';
  */
 export async function deleteTestFolder(drive: drive_v3.Drive, id: string, logger: Logger): Promise<void> {
   try {
-    await drive.files.delete({ fileId: id });
+    await drive.files.delete({ fileId: id, supportsAllDrives: true });
     logger.debug('Test folder close successful', { folderId: id });
   } catch (e) {
     const error = e as { status?: number; statusCode?: number; code?: string };

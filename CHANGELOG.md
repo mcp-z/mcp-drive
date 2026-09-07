@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.0] - 2026-09-07
+
+### Added
+
+- Shared drive support across every tool. Drive omits shared-drive items from `files.*` calls unless `supportsAllDrives` is set, so folder create, search, contents and path, and file search, move and trash could not see or act on anything living in a shared drive; only `drive-file-upload`'s create call carried the flag. Every call now sets it, the `drive-file` resource included. This is what makes a service account deployment workable: a service account has no Drive storage quota of its own, so its content belongs in a shared drive it has been added to as a member.
+
+### Changed
+
+- `drive-files-search`, `drive-folder-search` and `drive-folder-contents` search across shared drives, not just My Drive. `files.list` needs three parameters together to reach them, and Drive rejects the request if any is missing: `corpora: 'allDrives'`, because the default `user` corpus omits shared drives entirely; `includeItemsFromAllDrives`; and `supportsAllDrives`. An account that belongs to shared drives will now see items from those drives in search and listing results alongside its My Drive items. Note that Drive treats the `allDrives` corpus as less efficient than a single-drive or user-scoped search.
+
 ## [2.1.1] - 2026-09-06
 
 ### Changed

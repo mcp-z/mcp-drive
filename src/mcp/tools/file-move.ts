@@ -104,6 +104,7 @@ async function moveSingleFile(
     const fileMetadata = await drive.files.get({
       fileId: fileId,
       fields: 'id,name,parents,webViewLink',
+      supportsAllDrives: true,
     });
 
     const oldParents = (fileMetadata.data.parents as string[] | undefined) || [];
@@ -116,6 +117,7 @@ async function moveSingleFile(
       addParents: destinationFolderId,
       removeParents: oldParents.join(','),
       fields: 'id,name,parents,webViewLink',
+      supportsAllDrives: true,
     });
 
     const result: MoveResult = {
@@ -165,6 +167,7 @@ async function moveBatchFiles(
         const response = await drive.files.get({
           fileId: fileId,
           fields: 'id,name,parents,webViewLink',
+          supportsAllDrives: true,
         });
         const webViewLink = response.data.webViewLink as string | undefined;
         return {
@@ -213,6 +216,7 @@ async function moveBatchFiles(
           addParents: destinationFolderId,
           removeParents: file.parents.join(','),
           fields: 'id',
+          supportsAllDrives: true,
         });
         return {
           fileId: file.fileId,

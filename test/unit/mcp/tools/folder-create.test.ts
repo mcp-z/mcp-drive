@@ -6,7 +6,9 @@ import assert from 'assert';
 import type { Input, Output } from '../../../../src/mcp/tools/folder-create.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
+import createServiceAccountContext from '../../../lib/create-service-account-context.ts';
 import { deleteTestFolder } from '../../../lib/folder-helpers.ts';
+import { testSharedDriveId } from '../../../lib/shared-drive.ts';
 
 /**
  * Tests for Drive folder create tool
@@ -112,6 +114,50 @@ describe('drive-folder-create tests', () => {
         }
         if (parentFolderId) {
           await deleteTestFolder(drive, parentFolderId, logger);
+        }
+      }
+    });
+  });
+
+  describe('shared drives', () => {
+    // Authenticates as the service account, not the human test account: the
+    // service account has no storage quota of its own, so the shared drive is
+    // the only place it can create anything.
+    let saAuth: Awaited<ReturnType<typeof createServiceAccountContext>>['auth'];
+    let saLogger: Awaited<ReturnType<typeof createServiceAccountContext>>['logger'];
+    let saFolderCreateHandler: ToolHandler<Input, EnrichedExtra>;
+
+    before(async () => {
+      const context = await createServiceAccountContext();
+      saAuth = context.auth;
+      saLogger = context.logger;
+      const wrappedTool = context.middleware.withToolAuth(mcp.toolFactories.folderCreate());
+      saFolderCreateHandler = wrappedTool.handler;
+    });
+
+    it('creates folder in a shared drive', async () => {
+      const sharedDriveId = testSharedDriveId();
+      let createdFolderId: string | undefined;
+
+      try {
+        const testFolderName = `Test Shared Drive Folder ${Date.now()}`;
+        const res = await saFolderCreateHandler({ name: testFolderName, parentId: sharedDriveId }, createExtra());
+
+        assert.ok(res?.structuredContent, 'response missing structuredContent');
+        const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
+        if (!branch) throw new Error('Expected branch');
+
+        assert.equal(branch.type, 'success', 'should have success type');
+        if (branch.type === 'success') {
+          assert.ok(branch.id, 'should have folder id');
+          assert.equal(branch.name, testFolderName, 'should have correct name');
+          assert.equal(branch.parentId, sharedDriveId, 'should be parented to the shared drive');
+          createdFolderId = branch.id;
+        }
+      } finally {
+        if (createdFolderId) {
+          const drive = driveApi({ version: 'v3', auth: saAuth });
+          await deleteTestFolder(drive, createdFolderId, saLogger);
         }
       }
     });

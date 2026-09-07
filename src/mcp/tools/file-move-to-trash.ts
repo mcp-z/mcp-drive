@@ -61,6 +61,7 @@ async function handler({ ids }: Input, extra: EnrichedExtra): Promise<CallToolRe
         await drive.files.update({
           fileId: id,
           requestBody: { trashed: true },
+          supportsAllDrives: true,
         });
         return id;
       })
