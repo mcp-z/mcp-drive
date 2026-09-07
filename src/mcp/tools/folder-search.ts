@@ -124,6 +124,7 @@ async function resolveFolderPath(drive: drive_v3.Drive, folderId: string, folder
         const response = await drive.files.get({
           fileId: currentId,
           fields: 'parents',
+          supportsAllDrives: true,
         });
         const parents = response.data.parents as string[] | undefined;
         currentId = (parents && parents.length > 0 ? parents[0] : '') || '';
@@ -139,6 +140,7 @@ async function resolveFolderPath(drive: drive_v3.Drive, folderId: string, folder
         const response = await drive.files.get({
           fileId: currentId,
           fields: 'name,parents',
+          supportsAllDrives: true,
         });
         const folderName = response.data.name as string | undefined;
         const parents = response.data.parents as string[] | undefined;
@@ -204,11 +206,19 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
       fields: string;
       orderBy: string;
       pageToken?: string;
+      corpora: string;
+      supportsAllDrives: boolean;
+      includeItemsFromAllDrives: boolean;
     } = {
       q: qStr,
       pageSize: validPageSize,
       fields: 'files(id,name,mimeType,webViewLink,modifiedTime,parents,shared,starred,owners),nextPageToken',
       orderBy: 'modifiedTime desc',
+      // All three are load-bearing for shared drives: the default `user` corpus omits
+      // them, and Drive rejects an `allDrives` corpus unless both flags are set too.
+      corpora: 'allDrives',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     };
     if (pageToken && pageToken.trim().length > 0) {
       listOptions.pageToken = pageToken;
@@ -238,6 +248,7 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
           const parentRes = await drive.files.get({
             fileId: parentId,
             fields: 'id,name',
+            supportsAllDrives: true,
           });
           const parentName = (parentRes.data.name as string | undefined) || parentId;
           parentNameMap.set(parentId, parentName);

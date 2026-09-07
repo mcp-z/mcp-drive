@@ -39,6 +39,7 @@ export default function createResource(): ResourceModule {
       const resp = await drive.files.get({
         fileId,
         fields: 'id,name,mimeType,size,modifiedTime,owners,webViewLink',
+        supportsAllDrives: true,
       });
       const data = resp.data;
       logger.debug?.({ fileId, fileName: data?.name }, 'drive-file resource fetch success');

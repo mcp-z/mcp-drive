@@ -1,3 +1,4 @@
+import { drive as driveApi } from '@googleapis/drive';
 import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
@@ -7,6 +8,9 @@ import type { Input, Output } from '../../../../src/mcp/tools/folder-search.ts';
 import { assertArraysShape, assertObjectsShape, assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
+import createServiceAccountContext from '../../../lib/create-service-account-context.ts';
+import { deleteTestFolder } from '../../../lib/folder-helpers.ts';
+import { testSharedDriveId } from '../../../lib/shared-drive.ts';
 
 /**
  * Comprehensive tests for Drive folder search tool
@@ -444,6 +448,74 @@ describe('drive-folder-search comprehensive tests', () => {
         ),
         (error) => error instanceof ProtocolError
       );
+    });
+  });
+
+  describe('shared drives', () => {
+    // Authenticates as the service account - see folder-create.test.ts.
+    let saAuth: Awaited<ReturnType<typeof createServiceAccountContext>>['auth'];
+    let saLogger: Awaited<ReturnType<typeof createServiceAccountContext>>['logger'];
+    let saFolderSearchHandler: ToolHandler<Input, EnrichedExtra>;
+
+    before(async () => {
+      const context = await createServiceAccountContext();
+      saAuth = context.auth;
+      saLogger = context.logger;
+      const wrappedTool = context.middleware.withToolAuth(mcp.toolFactories.folderSearch());
+      saFolderSearchHandler = wrappedTool.handler;
+    });
+
+    it('finds a folder inside a shared drive', async () => {
+      const sharedDriveId = testSharedDriveId();
+      const drive = driveApi({ version: 'v3', auth: saAuth });
+      let folderId: string | undefined;
+
+      try {
+        const folderName = `Test Shared Drive Search ${Date.now()}`;
+        const created = await drive.files.create({
+          requestBody: {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [sharedDriveId],
+          },
+          fields: 'id,name',
+          supportsAllDrives: true,
+        });
+        folderId = created.data.id as string;
+
+        // Drive's search index is eventually consistent. A folder created moments ago
+        // is reliably returned by a parent-only query but can be absent from one that
+        // also filters on mimeType - which this tool always adds - for a few seconds.
+        // So poll for it. The assertion is unchanged: the folder must be found.
+        const deadline = Date.now() + 30_000;
+        let found = false;
+        while (!found) {
+          const res = await saFolderSearchHandler(
+            {
+              query: { parentId: sharedDriveId, name: folderName },
+              resolvePaths: false,
+              pageSize: 10,
+              pageToken: undefined,
+              fields: 'id,name,mimeType,webViewLink,modifiedTime,owners',
+              shape: 'objects',
+            },
+            createExtra()
+          );
+
+          assert.ok(res?.structuredContent, 'search missing structuredContent');
+          const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
+          assertObjectsShape(branch, 'shared drive folder search results');
+          found = branch.items.some((item) => item.id === folderId);
+          if (!found) {
+            assert.ok(Date.now() < deadline, 'shared drive folder should appear in search results');
+            await new Promise((resolveWait) => setTimeout(resolveWait, 1000));
+          }
+        }
+      } finally {
+        if (folderId) {
+          await deleteTestFolder(drive, folderId, saLogger);
+        }
+      }
     });
   });
 

@@ -65,6 +65,7 @@ async function handler({ name: folderName, parentId }: Input, extra: EnrichedExt
         parents: parentId ? [parentId] : null,
       },
       fields: 'id,name,webViewLink,parents',
+      supportsAllDrives: true,
     });
 
     const res = response.data;
@@ -87,6 +88,7 @@ async function handler({ name: folderName, parentId }: Input, extra: EnrichedExt
           const parentResponse = await drive.files.get({
             fileId: actualParentId,
             fields: 'name',
+            supportsAllDrives: true,
           });
           parentName = (parentResponse.data.name as string | undefined) || actualParentId;
         } catch (e) {
