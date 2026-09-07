@@ -16,15 +16,9 @@
  *
  * Tests delete only what they create inside the drive.
  */
-// Loads .env.test. The unit suite otherwise reads only ambient shell environment;
-// TEST_SHARED_DRIVE_ID and GOOGLE_SERVICE_ACCOUNT_KEY_FILE live in .env.test alone.
-// dotenv does not override variables already set, so shell values still win.
-import './env-loader.ts';
+
+import { requiredEnv } from './env-loader.ts';
 
 export function testSharedDriveId(): string {
-  const id = process.env.TEST_SHARED_DRIVE_ID;
-  if (!id) {
-    throw new Error('TEST_SHARED_DRIVE_ID is not set. Add the id of the hand-provisioned shared drive to .env.test - see test/lib/shared-drive.ts for the setup steps.');
-  }
-  return id;
+  return requiredEnv('TEST_SHARED_DRIVE_ID');
 }

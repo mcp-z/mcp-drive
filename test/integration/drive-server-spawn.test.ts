@@ -4,6 +4,7 @@
  * Tests server spawning with stdio using @mcp-z/cli infrastructure.
  */
 
+import '../lib/env-loader.ts';
 import { createServerRegistry, type ManagedClient, type ServerRegistry } from '@mcp-z/client';
 import assert from 'assert';
 

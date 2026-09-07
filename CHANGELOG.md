@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0] - 2026-09-07
+
+### Changed
+
+- Clients speaking the 2026-07-28 protocol revision now receive cache hints on list results: `tools/list`, `prompts/list`, `resources/templates/list` and `server/discover` carry a five-minute TTL and `cacheScope: 'public'`, while `resources/list` and `resources/read` stay `private` with no TTL because they vary by account. Previously every cacheable result used the SDK's conservative `ttlMs: 0` / `private` default, which caches nothing. 2025-era clients are unaffected — the fields do not exist on that revision.
+- Tools, resources and prompts are now registered in name order, so `tools/list` returns the same order from every connection and a client can keep a cached catalog valid across a reconnect. The listed order differs from previous releases; no tool is added, removed or renamed.
+
 ## [2.3.0] - 2026-09-07
 
 ### Added
@@ -8,7 +15,7 @@
 
 ### Changed
 
-- `drive-files-search`, `drive-folder-search` and `drive-folder-contents` search across shared drives, not just My Drive. `files.list` needs three parameters together to reach them, and Drive rejects the request if any is missing: `corpora: 'allDrives'`, because the default `user` corpus omits shared drives entirely; `includeItemsFromAllDrives`; and `supportsAllDrives`. An account that belongs to shared drives will now see items from those drives in search and listing results alongside its My Drive items. Note that Drive treats the `allDrives` corpus as less efficient than a single-drive or user-scoped search.
+- `drive-files-search`, `drive-folder-search` and `drive-folder-contents` search across shared drives, not just My Drive. `files.list` needs three parameters together to reach them, and Drive rejects the request if any is missing: `corpora: 'allDrives'`, because the default `user` corpus omits shared drives entirely; `includeItemsFromAllDrives`; and `supportsAllDrives`. An account that belongs to shared drives will now see items from those drives in search and listing results alongside its My Drive items.
 
 ## [2.1.1] - 2026-09-06
 

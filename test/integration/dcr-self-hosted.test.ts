@@ -8,6 +8,7 @@
  * then PASS (green) after implementing the proper self-hosted DCR support.
  */
 
+import '../lib/env-loader.ts';
 import type { AuthCapabilities } from '@mcp-z/client';
 import { DcrAuthenticator, DiscoveryFetchError } from '@mcp-z/client';
 import assert from 'assert';
