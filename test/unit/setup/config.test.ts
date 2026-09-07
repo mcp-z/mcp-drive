@@ -1,3 +1,4 @@
+import '../../lib/env-loader.ts';
 import { setup } from '@mcp-z/mcp-drive';
 import assert from 'assert';
 

@@ -12,20 +12,14 @@
  * account id 'service-account', and mints its own tokens from the key file.
  */
 
-// Loads .env.test. The unit suite otherwise reads only ambient shell environment;
-// TEST_SHARED_DRIVE_ID and GOOGLE_SERVICE_ACCOUNT_KEY_FILE live in .env.test alone.
-// dotenv does not override variables already set, so shell values still win.
-import './env-loader.ts';
 import { ServiceAccountProvider } from '@mcp-z/oauth-google';
 import { GOOGLE_SCOPE } from '../../src/constants.ts';
 import { googleAuth } from '../../src/lib/google-auth.ts';
 import type { Logger } from '../../src/types.ts';
+import { requiredEnv } from './env-loader.ts';
 
 export default async function createServiceAccountContext() {
-  const keyFilePath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
-  if (!keyFilePath) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY_FILE is not set. Point it at the service account key file in .env.test - see test/lib/shared-drive.ts for the setup steps.');
-  }
+  const keyFilePath = requiredEnv('GOOGLE_SERVICE_ACCOUNT_KEY_FILE');
 
   const logger: Logger = {
     debug: (_msg: string, _meta?: Record<string, unknown>) => {},
