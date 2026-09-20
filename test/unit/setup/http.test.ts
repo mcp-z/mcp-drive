@@ -1,4 +1,5 @@
 import '../../lib/env-loader.ts';
+import { pathToFileURL } from 'node:url';
 import type { ServerConfig } from '@mcp-z/mcp-drive';
 import { setup } from '@mcp-z/mcp-drive';
 import assert from 'assert';
@@ -48,7 +49,7 @@ describe('createServer - transport initialization', () => {
       logLevel: 'error',
       auth: 'loopback-oauth',
       repositoryUrl: 'https://github.com/mcp-z/mcp-drive',
-      resourceStoreUri: `file://${testContextPath}/files`,
+      resourceStoreUri: pathToFileURL(path.join(testContextPath, 'files')).href,
     };
 
     const result = await setup.createHTTPServer(config);
@@ -72,7 +73,7 @@ describe('createServer - transport initialization', () => {
       logLevel: 'error',
       auth: 'loopback-oauth',
       repositoryUrl: 'https://github.com/mcp-z/mcp-drive',
-      resourceStoreUri: `file://${testContextPath}/files`,
+      resourceStoreUri: pathToFileURL(path.join(testContextPath, 'files')).href,
     };
 
     const result = await setup.createHTTPServer(config);
@@ -97,7 +98,7 @@ describe('createServer - transport initialization', () => {
       logLevel: 'error',
       auth: 'loopback-oauth',
       repositoryUrl: 'https://github.com/mcp-z/mcp-drive',
-      resourceStoreUri: `file://${testContextPath}/files`,
+      resourceStoreUri: pathToFileURL(path.join(testContextPath, 'files')).href,
     };
 
     const result = await setup.createHTTPServer(config);
