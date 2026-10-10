@@ -13,10 +13,10 @@
  */
 
 import { ServiceAccountProvider } from '@mcp-z/oauth-google';
+import { requiredEnv } from 'portable-env';
 import { GOOGLE_SCOPE } from '../../src/constants.ts';
 import { googleAuth } from '../../src/lib/google-auth.ts';
 import type { Logger } from '../../src/types.ts';
-import { requiredEnv } from './env-loader.ts';
 
 export default async function createServiceAccountContext() {
   const keyFilePath = requiredEnv('GOOGLE_SERVICE_ACCOUNT_KEY_FILE');
