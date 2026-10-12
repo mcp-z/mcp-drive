@@ -33,7 +33,7 @@ describe('createServer - transport initialization', () => {
   });
 
   it('initializes HTTP transport with OAuth', async () => {
-    const port = await getPort();
+    const port = await getPort({ host: '127.0.0.1' });
 
     const config: ServerConfig = {
       name: 'test-server',
@@ -60,7 +60,7 @@ describe('createServer - transport initialization', () => {
   });
 
   it('includes logger in server result', async () => {
-    const port = await getPort();
+    const port = await getPort({ host: '127.0.0.1' });
 
     const config: ServerConfig = {
       name: 'test-server',
@@ -85,7 +85,7 @@ describe('createServer - transport initialization', () => {
   });
 
   it('creates server with MCP server instance', async () => {
-    const port = await getPort();
+    const port = await getPort({ host: '127.0.0.1' });
 
     const config: ServerConfig = {
       name: 'test-server',

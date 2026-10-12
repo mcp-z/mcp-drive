@@ -1,122 +1,85 @@
+// Calls the Google Drive API with the configured test account: creates two owned files,
+// trashes them through the tool, reads them back and permanently deletes them.
 import '../../../lib/env-loader.ts';
+import { drive as driveApi } from '@googleapis/drive';
 import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
+import { randomUUID } from 'crypto';
 import type { Input, Output } from '../../../../src/mcp/tools/file-move-to-trash.ts';
 import { assertSuccess } from '../../../lib/assertions.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
+import { throwFailures } from '../../../lib/throw-failures.ts';
 
 describe('drive-file-move-to-trash', () => {
+  let auth: Awaited<ReturnType<typeof createMiddlewareContext>>['auth'];
   let fileMoveToTrashHandler: ToolHandler<Input, EnrichedExtra>;
 
   before(async () => {
     const middlewareContext = await createMiddlewareContext();
-    const middleware = middlewareContext.middleware;
-    const tool = mcp.toolFactories.fileMoveToTrash();
-    const wrappedTool = middleware.withToolAuth(tool);
-    fileMoveToTrashHandler = wrappedTool.handler;
+    auth = middlewareContext.auth;
+    fileMoveToTrashHandler = middlewareContext.middleware.withToolAuth(mcp.toolFactories.fileMoveToTrash()).handler;
   });
 
-  describe('basic functionality', () => {
-    it('returns structured content with correct schema', async () => {
-      // Test with a non-existent file ID (will fail but structure should be valid)
-      const res = await fileMoveToTrashHandler({ ids: ['nonexistent-file-id'] }, createExtra());
+  async function trash(ids: string[]): Promise<Output> {
+    const res = await fileMoveToTrashHandler({ ids }, createExtra());
+    return (res.structuredContent as { result: Output }).result;
+  }
 
-      assert.ok(res?.structuredContent, 'missing structuredContent');
-      const branch = (res.structuredContent as { result?: unknown })?.result as Output | undefined;
+  it('trashes owned files and reports only real failures', async () => {
+    const drive = driveApi({ version: 'v3', auth });
+    const run = randomUUID();
+    const owned: string[] = [];
+    let bodyError: unknown;
 
-      // Should have success type with failure details or error type
-      assertSuccess(branch, 'move-to-trash structured response');
-      assert.ok(typeof branch.operationSummary === 'string', 'should have operationSummary');
-      assert.ok(typeof branch.totalCount === 'number', 'should have totalCount');
-      assert.ok(typeof branch.successCount === 'number', 'should have successCount');
-      assert.ok(typeof branch.failureCount === 'number', 'should have failureCount');
-      assert.equal(branch.recoverable, true, 'trash operation should be recoverable');
-      assert.equal(branch.recoverableDays, 30, 'should have 30 days recovery window');
+    try {
+      const create = async (suffix: string) => {
+        const { data } = await drive.files.create({ requestBody: { name: `trash-${run}-${suffix}`, mimeType: 'text/plain' }, fields: 'id' });
+        assert.ok(data.id, 'created file should have an id');
+        owned.push(data.id);
+        return data.id;
+      };
+      const a = await create('a');
+      const b = await create('b');
+      const missing = `nonexistent-${run}`;
 
-      // If there were failures, check structure
-      if (branch.failures) {
-        assert.ok(Array.isArray(branch.failures), 'failures should be array');
-        if (branch.failures.length > 0) {
-          const failure = branch.failures[0];
-          assert.ok(failure, 'failure should exist');
-          assert.ok(typeof failure.id === 'string', 'failure should have id');
-          assert.ok(typeof failure.error === 'string', 'failure should have error message');
-        }
+      const allSuccess = await trash([a]);
+      assertSuccess(allSuccess, 'all-success trash');
+      assert.strictEqual(allSuccess.totalCount, 1);
+      assert.strictEqual(allSuccess.successCount, 1);
+      assert.strictEqual(allSuccess.failureCount, 0);
+      assert.strictEqual(allSuccess.failures, undefined, 'failures omitted when every file is trashed');
+      assert.strictEqual(allSuccess.recoverable, true);
+      assert.strictEqual(allSuccess.recoverableDays, 30);
+      assert.strictEqual(allSuccess.operationSummary, 'Moved 1 file to trash (recoverable for 30 days)');
+
+      const mixed = await trash([b, missing]);
+      assertSuccess(mixed, 'mixed trash');
+      assert.strictEqual(mixed.totalCount, 2);
+      assert.strictEqual(mixed.successCount, 1);
+      assert.strictEqual(mixed.failureCount, 1);
+      assert.deepStrictEqual(
+        mixed.failures?.map((failure) => failure.id),
+        [missing]
+      );
+      assert.ok(mixed.failures?.[0]?.error, 'failure should carry the provider error');
+      assert.strictEqual(mixed.recoverable, true);
+      assert.strictEqual(mixed.recoverableDays, 30);
+      assert.strictEqual(mixed.operationSummary, 'Moved 1 of 2 files to trash (1 failed, recoverable for 30 days)');
+
+      for (const id of [a, b]) {
+        const { data } = await drive.files.get({ fileId: id, fields: 'trashed', supportsAllDrives: true });
+        assert.strictEqual(data.trashed, true, `owned file ${id} should be trashed`);
       }
-    });
+    } catch (error) {
+      bodyError = error;
+    }
 
-    it('handles single file ID', async () => {
-      const res = await fileMoveToTrashHandler({ ids: ['test-file-id'] }, createExtra());
-
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-      assertSuccess(branch, 'single file ID');
-      assert.equal(branch.totalCount, 1, 'should process 1 item');
-    });
-
-    it('handles multiple file IDs', async () => {
-      const res = await fileMoveToTrashHandler({ ids: ['test-file-1', 'test-file-2', 'test-file-3'] }, createExtra());
-
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-      assertSuccess(branch, 'multiple file IDs');
-      assert.equal(branch.totalCount, 3, 'should process 3 items');
-    });
-  });
-
-  describe('errors-only pattern', () => {
-    it('omits failures array when all succeed', async () => {
-      // This test would need actual valid file IDs to test success case
-      // For now we verify the schema allows omission
-      const res = await fileMoveToTrashHandler({ ids: ['test-id'] }, createExtra());
-
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-      assertSuccess(branch, 'omits failures array');
-      // If all items succeeded, failures should be undefined
-      if (branch.successCount === branch.totalCount) {
-        assert.equal(branch.failures, undefined, 'should omit failures array when all succeed');
-      }
-    });
-
-    it('includes failures array only when items fail', async () => {
-      const res = await fileMoveToTrashHandler({ ids: ['invalid-id-1', 'invalid-id-2'] }, createExtra());
-
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-      assertSuccess(branch, 'includes failures array');
-      // With invalid IDs, we expect failures
-      if (branch.failureCount > 0) {
-        assert.ok(Array.isArray(branch.failures), 'should include failures array when items fail');
-        assert.ok(branch.failures.length > 0, 'failures array should not be empty');
-      }
-    });
-  });
-
-  describe('batch operations', () => {
-    it('handles maximum batch size (1000)', async () => {
-      const maxBatch = Array.from({ length: 1000 }, (_, i) => `file-${i}`);
-
-      const res = await fileMoveToTrashHandler({ ids: maxBatch }, createExtra());
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-
-      assertSuccess(branch, 'max batch size');
-      assert.equal(branch.totalCount, 1000, 'should process all 1000 items');
-    });
-  });
-
-  describe('error handling', () => {
-    it('handles service errors gracefully', async () => {
-      const res = await fileMoveToTrashHandler({ ids: ['malformed|||id'] }, createExtra());
-
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-      assertSuccess(branch, 'malformed IDs');
-    });
-
-    it('requires auth to succeed', async () => {
-      const res = await fileMoveToTrashHandler({ ids: ['test-id'] }, createExtra());
-
-      const branch = (res.structuredContent as { result?: unknown } | undefined)?.result as Output | undefined;
-      assertSuccess(branch, 'auth requirement');
-    });
+    // Every owned fixture is deleted even when the body failed; both failures stay visible.
+    const cleanup = await Promise.allSettled(owned.map((fileId) => drive.files.delete({ fileId, supportsAllDrives: true })));
+    const cleanupErrors = cleanup.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map((result) => result.reason);
+    throwFailures('Trash test and fixture cleanup failed', bodyError === undefined ? cleanupErrors : [bodyError, ...cleanupErrors]);
   });
 });

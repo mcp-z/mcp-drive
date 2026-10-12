@@ -84,7 +84,7 @@ describe('drive-file-upload tests', () => {
 
     it('uploads file from http:// URI with defaults from headers and URL path', async () => {
       const httpContent = 'hello over http';
-      const port = await getPort();
+      const port = await getPort({ host: '127.0.0.1' });
       const server: Server = createServer((_req, res) => {
         res.setHeader('content-type', 'text/plain');
         res.end(httpContent);
@@ -229,7 +229,7 @@ describe('drive-file-upload tests', () => {
     });
 
     it('handles HTTP 404 source', async () => {
-      const port = await getPort();
+      const port = await getPort({ host: '127.0.0.1' });
       const server: Server = createServer((_req, res) => {
         res.statusCode = 404;
         res.end('not found');

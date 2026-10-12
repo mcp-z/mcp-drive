@@ -2,7 +2,7 @@
 
 // Checks --version/--help/`version` via the dependency-free version-help module before ever
 // touching index.js, which statically re-exports the mcp/setup/schemas namespaces (googleapis,
-// @modelcontextprotocol/sdk, @mcp-z/oauth-google, @mcp-z/server et al.) -- importing index.js at
+// @mcp-z/oauth-google, @mcp-z/server et al.) -- importing index.js at
 // all, even without calling anything in it, evaluates that whole graph.
 if (typeof require === 'undefined') {
   // biome-ignore lint/security/noGlobalEval: dual esm and cjs

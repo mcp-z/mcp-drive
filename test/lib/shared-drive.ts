@@ -17,7 +17,7 @@
  * Tests delete only what they create inside the drive.
  */
 
-import { requiredEnv } from './env-loader.ts';
+import { requiredEnv } from 'portable-env';
 
 export function testSharedDriveId(): string {
   return requiredEnv('TEST_SHARED_DRIVE_ID');
