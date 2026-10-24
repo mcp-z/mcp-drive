@@ -70,7 +70,7 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "@googleapis/drive": "^26.0.0",
+    "@googleapis/drive": "^27.0.0",
     "@mcp-z/oauth": "^2.0.0",
     "@mcp-z/oauth-google": "^2.0.1",
     "@mcp-z/server": "^2.2.0",

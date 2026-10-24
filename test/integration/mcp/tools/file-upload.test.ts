@@ -4,6 +4,7 @@ import { mcp } from '@mcp-z/mcp-drive';
 import type { EnrichedExtra } from '@mcp-z/oauth-google';
 import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
+import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import getPort from 'get-port';
 import { createServer, type Server } from 'http';
@@ -41,6 +42,14 @@ describe('drive-file-upload tests', () => {
     fileUploadHandler = wrappedTool.handler;
   });
 
+  /** Drive's reported size and checksums must be those of the bytes sent, never values computed locally. */
+  function assertStoredContent(branch: Extract<Output, { type: 'success' }>, content: string): void {
+    const bytes = Buffer.from(content, 'utf-8');
+    assert.equal(branch.size, String(bytes.length), 'should report the stored size in bytes');
+    assert.equal(branch.md5Checksum, createHash('md5').update(bytes).digest('hex'), 'should report the stored MD5 checksum');
+    if (branch.sha256Checksum !== undefined) assert.equal(branch.sha256Checksum, createHash('sha256').update(bytes).digest('hex'), 'should report the stored SHA-256 checksum');
+  }
+
   /** Write a text fixture into the package-root .tmp/ directory (never os.tmpdir()) */
   async function writeFixture(fileName: string, content: string): Promise<string> {
     const fixturePath = join('.tmp', fileName);
@@ -68,7 +77,7 @@ describe('drive-file-upload tests', () => {
           assert.ok(branch.id, 'should have file id');
           assert.equal(branch.name, fixtureName, 'should default name from source file name');
           assert.equal(branch.mimeType, 'text/plain', 'should guess MIME from extension');
-          assert.equal(branch.size, String(fixtureContent.length), 'should report uploaded size in bytes');
+          assertStoredContent(branch, fixtureContent);
           assert.ok(branch.webViewLink, 'should have webViewLink');
           uploadedFileId = branch.id;
         }
@@ -104,7 +113,7 @@ describe('drive-file-upload tests', () => {
           assert.ok(branch.id, 'should have file id');
           assert.equal(branch.name, 'report.txt', 'should default name from URL path');
           assert.equal(branch.mimeType, 'text/plain', 'should use Content-Type header');
-          assert.equal(branch.size, String(httpContent.length), 'should report uploaded size in bytes');
+          assertStoredContent(branch, httpContent);
           uploadedFileId = branch.id;
         }
       } finally {

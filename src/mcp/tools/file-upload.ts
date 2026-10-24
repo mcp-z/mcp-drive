@@ -28,7 +28,9 @@ const successBranchSchema = z.object({
   id: z.string().describe('ID of the uploaded file'),
   name: z.string().describe('Name of the uploaded file'),
   mimeType: z.string().describe('MIME type of the uploaded file'),
-  size: z.string().describe('Size of the uploaded file in bytes'),
+  size: z.string().optional().describe('Size of the uploaded file in bytes, as Drive reports it; absent when Drive does not report one'),
+  md5Checksum: z.string().optional().describe('MD5 checksum of the stored content, as Drive reports it; absent for content Drive does not hash'),
+  sha256Checksum: z.string().optional().describe('SHA-256 checksum of the stored content, as Drive reports it; absent when Drive has not computed one'),
   webViewLink: z.string().describe('URL to view the file in Drive'),
   parentId: z.string().optional().describe('ID of the parent folder'),
   parentName: z.string().optional().describe('Name of the parent folder'),
@@ -77,14 +79,17 @@ async function handler({ sourceUri, name, mimeType, parentId, description }: Inp
       },
       media: { mimeType: finalMimeType, body: source.stream },
       supportsAllDrives: true,
-      fields: 'id,name,mimeType,size,webViewLink,parents',
+      fields: 'id,name,mimeType,size,md5Checksum,sha256Checksum,webViewLink,parents',
     });
 
     const res = response.data;
     const id = res.id ?? '';
     const resultName = res.name ?? finalName;
     const resultMimeType = res.mimeType ?? finalMimeType;
-    const size = res.size ?? String(source.size ?? 0);
+    // Drive's own values only: a caller checks them against the bytes it sent.
+    const size = res.size ?? undefined;
+    const md5Checksum = res.md5Checksum ?? undefined;
+    const sha256Checksum = res.sha256Checksum ?? undefined;
     const webViewLink = res.webViewLink ?? '';
     const parents = (res.parents as string[] | undefined) || [];
 
@@ -134,7 +139,9 @@ async function handler({ sourceUri, name, mimeType, parentId, description }: Inp
       id,
       name: resultName,
       mimeType: resultMimeType,
-      size,
+      ...(size && { size }),
+      ...(md5Checksum && { md5Checksum }),
+      ...(sha256Checksum && { sha256Checksum }),
       webViewLink,
       ...(actualParentId && { parentId: actualParentId }),
       ...(parentName && { parentName }),
