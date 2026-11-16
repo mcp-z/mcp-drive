@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.0] - 2026-11-15
+
+### Added
+
+- Private settings such as the OAuth client ID and secret can live in a file instead of the shell: the first file found of `<baseDir>/mcp-drive/.env` (the `.mcp-z` folder beside the nearest `.mcp.json`, else in the home folder) and `~/.config/mcp-z/mcp-drive/.env`. Non-empty environment values win over the file. On macOS and Linux a file readable by other accounts is refused. Requires `@mcp-z/server` 2.3.0.
+
 ## [2.4.0] - 2026-09-07
 
 ### Changed

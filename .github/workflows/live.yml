@@ -6,20 +6,20 @@ on:
         type: string
         required: true
     secrets:
-      CI_SECRETS_TOKEN: {required: true}
-      TEST_ACCOUNT_ID: {required: true}
-      TEST_REFRESH_TOKEN: {required: true}
-      TEST_SCOPE: {required: true}
-      GOOGLE_CLIENT_ID: {required: true}
-      GOOGLE_CLIENT_SECRET: {required: false}
-      TEST_SHARED_DRIVE_ID: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_ID: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_CLIENT_ID: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_PROJECT_ID: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_AUTH_URI: {required: true}
-      GOOGLE_SERVICE_ACCOUNT_TOKEN_URI: {required: true}
+      CI_SECRETS_TOKEN: { required: true }
+      TEST_ACCOUNT_ID: { required: true }
+      TEST_REFRESH_TOKEN: { required: true }
+      TEST_SCOPE: { required: true }
+      GOOGLE_CLIENT_ID: { required: true }
+      GOOGLE_CLIENT_SECRET: { required: false }
+      TEST_SHARED_DRIVE_ID: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_ID: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_CLIENT_ID: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_PROJECT_ID: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_AUTH_URI: { required: true }
+      GOOGLE_SERVICE_ACCOUNT_TOKEN_URI: { required: true }
   workflow_dispatch:
     inputs:
       runner:
@@ -83,8 +83,8 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           TEST_SHARED_DRIVE_ID: ${{ secrets.TEST_SHARED_DRIVE_ID }}
-          TEST_INCLUDE_MANUAL: 'false'
-          HEADLESS: 'true'
+          TEST_INCLUDE_MANUAL: "false"
+          HEADLESS: "true"
           GOOGLE_SERVICE_ACCOUNT_KEY_FILE: ${{ github.workspace }}/service-account.test.json
       - name: Engines
         run: npm run test:engines -- --bail
