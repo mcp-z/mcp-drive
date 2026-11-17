@@ -164,6 +164,50 @@ async function resolveFolderPath(drive: drive_v3.Drive, folderId: string, folder
   return `/${pathParts.join('/')}`;
 }
 
+export type FolderListOptions = {
+  q: string;
+  pageSize: number;
+  fields: string;
+  orderBy: string;
+  pageToken?: string;
+  corpora: string;
+  supportsAllDrives: boolean;
+  includeItemsFromAllDrives: boolean;
+};
+
+/** Build the exact files.list request drive-folder-search sends; tests wait on the same request. */
+export function buildFolderListOptions(parsedQuery: ReturnType<typeof parseDriveQueryParameter>, pageSize: number, pageToken?: string): FolderListOptions {
+  const folderMimeType = 'application/vnd.google-apps.folder';
+  let qStr: string;
+
+  if (parsedQuery && 'rawDriveQuery' in parsedQuery && parsedQuery.rawDriveQuery) {
+    qStr = parsedQuery.rawDriveQuery;
+  } else if (parsedQuery) {
+    const { q } = toDriveQuery(parsedQuery);
+    qStr = q || '';
+  } else {
+    qStr = '';
+  }
+
+  qStr = qStr ? `(${qStr}) and mimeType='${folderMimeType}'` : `mimeType='${folderMimeType}'`;
+
+  const listOptions: FolderListOptions = {
+    q: qStr,
+    pageSize,
+    fields: 'files(id,name,mimeType,webViewLink,modifiedTime,parents,shared,starred,owners),nextPageToken',
+    orderBy: 'modifiedTime desc',
+    // All three are load-bearing for shared drives: the default `user` corpus omits
+    // them, and Drive rejects an `allDrives` corpus unless both flags are set too.
+    corpora: 'allDrives',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  };
+  if (pageToken && pageToken.trim().length > 0) {
+    listOptions.pageToken = pageToken;
+  }
+  return listOptions;
+}
+
 async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, fields, shape = 'arrays' }: Input, extra: EnrichedExtra): Promise<CallToolResult> {
   const logger = extra.logger;
 
@@ -184,45 +228,7 @@ async function handler({ query, resolvePaths = false, pageSize = 50, pageToken, 
 
     const drive = driveApi({ version: 'v3', auth: googleAuth(extra.authContext.auth) });
 
-    const folderMimeType = 'application/vnd.google-apps.folder';
-    let qStr: string;
-
-    if (parsedQuery && 'rawDriveQuery' in parsedQuery && parsedQuery.rawDriveQuery) {
-      // Object with rawDriveQuery field - use it directly
-      qStr = parsedQuery.rawDriveQuery;
-    } else if (parsedQuery) {
-      // Structured query object - convert to Drive query string
-      const { q } = toDriveQuery(parsedQuery);
-      qStr = q || '';
-    } else {
-      qStr = '';
-    }
-
-    qStr = qStr ? `(${qStr}) and mimeType='${folderMimeType}'` : `mimeType='${folderMimeType}'`;
-
-    const listOptions: {
-      q: string;
-      pageSize: number;
-      fields: string;
-      orderBy: string;
-      pageToken?: string;
-      corpora: string;
-      supportsAllDrives: boolean;
-      includeItemsFromAllDrives: boolean;
-    } = {
-      q: qStr,
-      pageSize: validPageSize,
-      fields: 'files(id,name,mimeType,webViewLink,modifiedTime,parents,shared,starred,owners),nextPageToken',
-      orderBy: 'modifiedTime desc',
-      // All three are load-bearing for shared drives: the default `user` corpus omits
-      // them, and Drive rejects an `allDrives` corpus unless both flags are set too.
-      corpora: 'allDrives',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    };
-    if (pageToken && pageToken.trim().length > 0) {
-      listOptions.pageToken = pageToken;
-    }
+    const listOptions = buildFolderListOptions(parsedQuery, validPageSize, pageToken);
 
     const response = await drive.files.list(listOptions);
 
