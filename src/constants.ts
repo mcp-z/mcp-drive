@@ -7,3 +7,6 @@
 
 // Google OAuth scopes required for Drive operations
 export const GOOGLE_SCOPE = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive';
+
+// Default token and DCR stores: a JSON file several processes can share
+export const SHARED_FILE_PROTOCOL = 'file+shared:';
