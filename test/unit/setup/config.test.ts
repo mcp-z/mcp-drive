@@ -1,6 +1,9 @@
 import '../../lib/env-loader.ts';
 import { setup } from '@mcp-z/mcp-drive';
 import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { pathToFileURL } from 'url';
 
 describe('setup.parseConfig', () => {
   it('defaults to stdio transport with no args or env', () => {
@@ -176,5 +179,42 @@ describe('setup.parseConfig', () => {
     });
 
     assert.strictEqual(config.logLevel, 'warn');
+  });
+});
+
+interface ServerJsonEntry {
+  name: string;
+  value?: string;
+  default?: string;
+  placeholder?: string;
+}
+interface ServerJsonPackage {
+  environmentVariables?: ServerJsonEntry[];
+  packageArguments?: ServerJsonEntry[];
+}
+
+describe('resource store default', () => {
+  const config = setup.parseConfig([], { GOOGLE_CLIENT_ID: 'test-client-id', GOOGLE_CLIENT_SECRET: 'test-client-secret' });
+  const server = JSON.parse(fs.readFileSync(path.resolve('server.json'), 'utf8')) as { packages: ServerJsonPackage[] };
+  const entries = server.packages.flatMap((pkg) => [...(pkg.environmentVariables ?? []), ...(pkg.packageArguments ?? [])]).filter((e) => e.name === 'RESOURCE_STORE_URI' || e.name === '--resource-store-uri');
+
+  it('server.json has the resource store entries', () => {
+    assert.strictEqual(entries.length, server.packages.length * 2);
+  });
+
+  it('server.json pins no value or default', () => {
+    for (const entry of entries) {
+      assert.strictEqual(entry.value, undefined, `${entry.name} carries value`);
+      assert.strictEqual(entry.default, undefined, `${entry.name} carries default`);
+    }
+  });
+
+  // The placeholder is the home form of the default; the real default depends on the nearest .mcp.json.
+  it('server.json placeholder shows the server default', () => {
+    for (const entry of entries.filter((e) => e.name === 'RESOURCE_STORE_URI')) assert.strictEqual(entry.placeholder, `file://~/.mcp-z/${config.name}/files`);
+  });
+
+  it('default resource store is <baseDir>/<name>/files', () => {
+    assert.strictEqual(config.resourceStoreUri, pathToFileURL(path.join(config.baseDir, config.name, 'files')).href);
   });
 });

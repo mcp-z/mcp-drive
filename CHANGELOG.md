@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.6.2] - 2026-11-20
+
+### Fixed
+
+- The `RESOURCE_STORE_URI` entries in `server.json` no longer carry a fixed value, so `mcp-z` manifest generation does not pin the resource folder to the home folder in a generated configuration. An existing generated configuration keeps its line and is unaffected.
+
 ## [2.6.1] - 2026-11-19
 
 ### Security
