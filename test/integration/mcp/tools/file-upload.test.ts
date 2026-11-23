@@ -6,13 +6,13 @@ import type { ToolHandler } from '@mcp-z/server';
 import assert from 'assert';
 import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
-import getPort from 'get-port';
 import { createServer, type Server } from 'http';
 import { join } from 'path';
 import type { Input, Output } from '../../../../src/mcp/tools/file-upload.ts';
 import { createExtra } from '../../../lib/create-extra.ts';
 import createMiddlewareContext from '../../../lib/create-middleware-context.ts';
 import { deleteTestFolder } from '../../../lib/folder-helpers.ts';
+import { listenOnFreePort } from '../../../lib/listen-on-free-port.ts';
 
 /**
  * Tests for Drive file upload tool
@@ -93,12 +93,11 @@ describe('drive-file-upload tests', () => {
 
     it('uploads file from http:// URI with defaults from headers and URL path', async () => {
       const httpContent = 'hello over http';
-      const port = await getPort({ host: '127.0.0.1' });
       const server: Server = createServer((_req, res) => {
         res.setHeader('content-type', 'text/plain');
         res.end(httpContent);
       });
-      await new Promise<void>((resolveListen) => server.listen(port, '127.0.0.1', resolveListen));
+      const { port } = await listenOnFreePort(server, '127.0.0.1');
       let uploadedFileId: string | undefined;
 
       try {
@@ -238,12 +237,11 @@ describe('drive-file-upload tests', () => {
     });
 
     it('handles HTTP 404 source', async () => {
-      const port = await getPort({ host: '127.0.0.1' });
       const server: Server = createServer((_req, res) => {
         res.statusCode = 404;
         res.end('not found');
       });
-      await new Promise<void>((resolveListen) => server.listen(port, '127.0.0.1', resolveListen));
+      const { port } = await listenOnFreePort(server, '127.0.0.1');
 
       try {
         await fileUploadHandler({ sourceUri: `http://127.0.0.1:${port}/missing.txt` }, createExtra());
